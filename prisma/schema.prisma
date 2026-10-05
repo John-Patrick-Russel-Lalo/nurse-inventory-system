@@ -1,0 +1,149 @@
+// Stock is never stored as a balance. Every change is a row in Transaction,
+// and balances are the sum of non-voided rows (see src/lib/stock.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  NURSE
+  ADMIN
+}
+
+enum Category {
+  MEDICINE
+  SUPPLY
+  EQUIPMENT
+  TOPICAL
+  SOLUTION
+  MISC
+}
+
+enum TxType {
+  OPENING
+  RECEIVE
+  DISPENSE
+  ADJUST
+  DISPOSE
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(NURSE)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  transactions Transaction[] @relation("RecordedBy")
+  voided       Transaction[] @relation("VoidedBy")
+  closedMonths ClosedMonth[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Item {
+  id           String   @id // existing workbook IDs, e.g. "MED-001"
+  name         String
+  variant      String? // brand, size or pack text from the workbook's NOTES column
+  category     Category
+  unit         String? // filled in during data cleanup
+  reorderLevel Int?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  batches       Batch[]
+  transactions  Transaction[]
+  monthClosings MonthClosing[]
+
+  @@index([category])
+  @@map("items")
+}
+
+model Batch {
+  id          Int       @id @default(autoincrement())
+  itemId      String
+  item        Item      @relation(fields: [itemId], references: [id])
+  expiry      DateTime? @db.Date // month end; null when unknown
+  label       String? // lot number if there is one
+  source      String?
+  receivedOn  DateTime? @db.Date
+  qtyReceived Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  transactions Transaction[]
+
+  @@index([itemId, expiry])
+  @@map("batches")
+}
+
+model Transaction {
+  id         Int       @id @default(autoincrement())
+  date       DateTime  @db.Date
+  itemId     String
+  item       Item      @relation(fields: [itemId], references: [id])
+  batchId    Int
+  batch      Batch     @relation(fields: [batchId], references: [id])
+  type       TxType
+  qty        Int // signed: OPENING/RECEIVE positive, DISPENSE/DISPOSE negative, ADJUST either
+  source     String?
+  remarks    String?
+  userId     Int
+  user       User      @relation("RecordedBy", fields: [userId], references: [id])
+  createdAt  DateTime  @default(now())
+  voidedAt   DateTime?
+  voidedById Int?
+  voidedBy   User?     @relation("VoidedBy", fields: [voidedById], references: [id])
+  voidReason String?
+
+  @@index([itemId, date])
+  @@index([batchId])
+  @@index([date])
+  @@map("transactions")
+}
+
+model ClosedMonth {
+  month      String   @id // "YYYY-MM"
+  closedAt   DateTime @default(now())
+  closedById Int
+  closedBy   User     @relation(fields: [closedById], references: [id])
+
+  @@map("closed_months")
+}
+
+model MonthClosing {
+  id         Int      @id @default(autoincrement())
+  month      String // "YYYY-MM"
+  itemId     String
+  item       Item     @relation(fields: [itemId], references: [id])
+  counted    Int
+  system     Int
+  difference Int
+  createdAt  DateTime @default(now())
+
+  @@unique([month, itemId])
+  @@map("month_closings")
+}
+
+model AuditLog {
+  id       Int      @id @default(autoincrement())
+  at       DateTime @default(now())
+  userId   Int?
+  user     User?    @relation(fields: [userId], references: [id])
+  action   String // e.g. "item.update", "transaction.void", "month.reopen"
+  entity   String
+  entityId String
+  detail   Json?
+
+  @@index([entity, entityId])
+  @@index([at])
+  @@map("audit_logs")
+}
