@@ -2,7 +2,9 @@
   "name": "nurse-inventory",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": ">=22.18" },
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -16,6 +18,8 @@
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "db:constraints": "node scripts/sync-constraints.mjs",
+    "import:workbook": "tsx scripts/import-workbook.ts",
+    "import:verify": "tsx scripts/verify-import.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -24,6 +28,7 @@
   "dependencies": {
     "@prisma/client": "^6.0.0",
     "bcryptjs": "^2.4.3",
+    "exceljs": "^4.4.0",
     "next": "^15.0.0",
     "next-auth": "5.0.0-beta.25",
     "react": "^19.0.0",

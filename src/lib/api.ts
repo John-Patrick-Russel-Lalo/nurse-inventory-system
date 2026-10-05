@@ -25,6 +25,7 @@ import type {
   StockResponse,
   TransactionView,
 } from "./api-types";
+import type { ImportReportResponse } from "@/server/import-report";
 
 export class ApiError extends Error {
   status: number;
@@ -119,4 +120,6 @@ export const api = {
   reopenMonth: (body: ReopenBody) => post<MonthEndResponse>("/api/month-end/reopen", body),
 
   audit: (q?: Query) => request<AuditResponse>(`/api/audit${qs(q)}`),
+  /** What the workbook import brought in, as the import script recorded it. Admin only. */
+  importReport: () => request<ImportReportResponse>("/api/import"),
 };

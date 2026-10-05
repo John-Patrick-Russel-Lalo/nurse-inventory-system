@@ -15,6 +15,7 @@ number: every change is a row, and balances are the sum of the rows.
 | Expiry | `/expiry` | Stocked batches by how soon they expire: expired, 30, 60, 90 days |
 | Month end | `/month-end` | Count the shelf, save counts, close the month. Admin can reopen |
 | Items | `/items` | The catalogue. Admin edits unit, reorder level and active |
+| Workbook import | `/admin/import` | What came in from NURSE.xlsx, and what still needs a decision |
 | Audit log | `/admin/audit` | Every change, with who and when. Admin only |
 
 ## The API
@@ -39,6 +40,7 @@ of a redirect.
 | `GET` | `/api/months` |
 | `GET` `POST` | `/api/month-end` — the counting sheet, or save counts |
 | `POST` | `/api/month-end/close` · `/api/month-end/reopen` (admin) |
+| `GET` | `/api/import` — the workbook migration report (admin) |
 | `GET` | `/api/audit` (admin) |
 
 ## Where the code lives
@@ -46,6 +48,9 @@ of a redirect.
 | Part | Where |
 | --- | --- |
 | Stock rules (balances, earliest-expiry-first, no-negative, entry-date rules) | `src/lib/stock.ts`, tests in `src/lib/stock.test.ts` |
+| Reading the old workbook (ITEMS, the 20 long tabs, the wide tab's expiry columns) | `src/lib/workbook.ts`, tests in `src/lib/workbook.test.ts` |
+| Turning those rows into batches and movements | `src/lib/import-ledger.ts`, tests in `src/lib/import-ledger.test.ts` |
+| Running the import and checking it against the database | `scripts/import-workbook.ts`, `scripts/verify-import.ts` |
 | Date handling, Manila time zone, `YYYY-MM-DD` strings | `src/lib/dates.ts` |
 | The shape of every request and response | `src/lib/api-types.ts` |
 | Domain services: balances, movements, voids, month close, audit | `src/server/` |
@@ -85,11 +90,75 @@ are deliberately not in the schema file that Prisma diffs.
 
 ```bash
 npm run dev          # http://localhost:3000
-npm test             # stock rules, 16 tests, no database needed
+npm test             # stock and import rules, 49 tests, no database needed
 npm run typecheck
 npm run lint
 npm run db:studio    # browse the tables
 ```
+
+## Bringing the old workbook in
+
+NURSE.xlsx holds 20 converted months, 151 items and 73,719 daily rows. The import turns those
+rows into movements, so the app never stores a balance — only the entries that produce one.
+
+```bash
+# See what would happen. Writes import-report.json and prints the reconciliation.
+npm run import:workbook -- --report --workbook "C:\path\to\NURSE.xlsx"
+
+# Write it. One transaction: either all of it lands or none of it does.
+npm run import:workbook -- --apply --workbook "C:\path\to\NURSE.xlsx"
+```
+
+`--apply` refuses to run when any movement already exists, unless `--reset` is added. That is
+deliberate: this is the one time history is loaded in bulk, and a second run should be a decision
+rather than an accident. `--reject-gap MED-018:2026-02-01` leaves a single month-opening gap
+unadjusted, which is the way to say "the sheet was wrong, not the stock".
+
+On NURSE.xlsx the report is 1,675 entries: 86 openings, 137 receipts, 1,437 dispenses and 15
+adjustments, across 179 batches. All 2,706 month ends rebuild to the balance the workbook wrote,
+and the received and dispensed totals match the sheet exactly.
+
+`npm run import:workbook -- --help` lists every option. `npm run import:verify -- --workbook <path>`
+is the independent check: it reads the movements back out of the database and rebuilds each month
+end from them, so it tests what was stored rather than what was planned.
+
+### How each workbook row became an entry
+
+| Workbook | In the app |
+| --- | --- |
+| An item's first row, with stock on hand | `OPENING` for that amount, on the batch whose expiry the tab recorded |
+| A `RECEIVED` value | One `RECEIVE`, on the batch for that day's expiry |
+| A `DISPENSED` value | One `DISPENSE`, earliest expiry first |
+| Both zero | Nothing. Quiet days are not entries |
+| A month opening at a different number than the last month closed | An `ADJUST` on the first day, so the numbers add up and the difference is visible |
+
+A converted tab keeps only one expiry per item, so the workbook cannot say which physical batch
+a movement came from. The rule used here is: a movement is booked against the batch whose expiry
+the tab recorded *that day*, and when that batch cannot cover a dispense the remainder comes from
+the item's other batches, earliest expiry first. That is the same rule the app applies when a
+nurse dispenses, and it is what keeps every batch at or above zero. Stock the office never
+recorded an expiry for goes into one "unknown expiry" batch per item.
+
+The wide tabs are read for two things only: their two `EXPIRATION DATE` columns, which are the
+only record of an item's second batch, and the `Additional (fr. HSO Alangilan)` header, which
+names the source of a delivery. When the wide tab knows about a second batch the workbook does not
+say how the balance on hand splits between the two, so the second batch is created empty rather
+than guessed at, and the next delivery fills it.
+
+### What the report lists
+
+- **Month ends that do not rebuild.** Must be zero. `--apply` refuses to write if it is not.
+- **Month-opening gaps.** The 15 the build plan predicted, each now an adjustment entry. Follow
+  the item link to see it in the history, and correct it there if the sheet was the wrong one.
+- **Stock past its expiry.** Imported as found and flagged, including BIOFLU's 500 units and a
+  roll of LEUKOPLAST dated 2021. Dispose of them from `/expiry`.
+- **Stock with no expiry.** 44 items hold stock the workbook never gave an expiry for. Receiving
+  asks for one now, so this list should only get shorter.
+- **Items the office stopped recording.** Their rows stop before the newest month, so the balance
+  is frozen. Confirm whether the item is still in use.
+
+The full report is kept in the audit trail under `workbook.import`, which is where `/admin/import`
+reads it from. A migration you cannot re-read later is a migration you cannot trust.
 
 ## How a stock movement is recorded
 
@@ -124,3 +193,8 @@ history still shows what was recorded and who reversed it.
 - Tests use Node's built-in runner, so the stock rules are tested without installing anything.
   The server services are not unit-tested: they need a database, and the rules they delegate to
   are.
+- The workbook import is a command-line job, not a screen. It reads a 4 MB spreadsheet and writes
+  thousands of rows, which does not belong in a request. `/admin/import` only reports what that
+  run recorded.
+- The whole history is importable without a name clash because `transactions.batchId` points at a
+  batch that the import creates itself, so an item can hold stock in two batches on the same day.

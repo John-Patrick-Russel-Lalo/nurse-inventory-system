@@ -22,6 +22,7 @@ const NAV: NavItem[] = [
   { label: "Expiry", href: "/expiry" },
   { label: "Month end", href: "/month-end" },
   { label: "Items", href: "/items" },
+  { label: "Workbook import", href: "/admin/import", adminOnly: true },
   { label: "Audit log", href: "/admin/audit", adminOnly: true },
 ];
 
