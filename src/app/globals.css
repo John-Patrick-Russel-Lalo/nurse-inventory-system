@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/* Colors are tokens. Light values here, dark values in the two blocks below. */
+:root {
+  --bg: #f3f6f5;
+  --surface: #ffffff;
+  --fg: #14232b;
+  --muted: #53666e;
+  --rule: #d3dedb;
+  --accent: #0b6b63;
+  --accent-fg: #ffffff;
+  --accent-soft: #dff0ed;
+  --warn: #9a5b00;
+  --warn-soft: #fbefd6;
+  --danger: #a3262a;
+  --danger-soft: #fbe4e4;
+  --ok: #1f6b3a;
+  --ok-soft: #e0f1e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1a1e;
+    --surface: #16252a;
+    --fg: #e4eeec;
+    --muted: #9bb0b0;
+    --rule: #2a3d42;
+    --accent: #5fcfc2;
+    --accent-fg: #06201d;
+    --accent-soft: #17353a;
+    --warn: #f0b955;
+    --warn-soft: #3a2f14;
+    --danger: #ff8a8a;
+    --danger-soft: #3d1c1e;
+    --ok: #7fd49a;
+    --ok-soft: #173325;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1a1e;
+  --surface: #16252a;
+  --fg: #e4eeec;
+  --muted: #9bb0b0;
+  --rule: #2a3d42;
+  --accent: #5fcfc2;
+  --accent-fg: #06201d;
+  --accent-soft: #17353a;
+  --warn: #f0b955;
+  --warn-soft: #3a2f14;
+  --danger: #ff8a8a;
+  --danger-soft: #3d1c1e;
+  --ok: #7fd49a;
+  --ok-soft: #173325;
+  color-scheme: dark;
+}
+
+/* Expose the tokens to Tailwind utilities (bg-surface, text-muted, border-rule, ...). */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

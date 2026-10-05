@@ -1,0 +1,908 @@
+[
+ {
+  "id": "MED-001",
+  "name": "ACETYLCYSTEINE",
+  "variant": "ACETYPHIL",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-002",
+  "name": "ACETYLCYSTEINE",
+  "variant": "PULMOCARE 200",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-003",
+  "name": "ALAXAN",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-004",
+  "name": "AMBROXOL",
+  "variant": "ZOBRIXOL",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-005",
+  "name": "AMBILYTE",
+  "variant": "Sachet",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-006",
+  "name": "AMOXICILLIN",
+  "variant": "HIMOX",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-007",
+  "name": "ASCORBIC ACID",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-008",
+  "name": "ASMALIN",
+  "variant": "NEBULES",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-009",
+  "name": "AZITHROMYCIN",
+  "variant": "AZITHRO",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-010",
+  "name": "BETAHISITINE",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-011",
+  "name": "BIOFLU",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-012",
+  "name": "CARBOCISTEINE",
+  "variant": "RITE MED",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-013",
+  "name": "CARBOCISTEINE",
+  "variant": "SOLMUX",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-014",
+  "name": "CEFALEXIN",
+  "variant": "RITE MED",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-015",
+  "name": "CELECOXIB",
+  "variant": "CELCOXX",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-016",
+  "name": "CETIRIZINE",
+  "variant": "ALNIX",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-017",
+  "name": "CETIRIZINE",
+  "variant": "CETZY",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-018",
+  "name": "CETIRIZINE",
+  "variant": "RITE MED",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-019",
+  "name": "CLARITHROMYCIN",
+  "variant": "RITE MED",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-020",
+  "name": "CLONIDINE",
+  "variant": "CATAPRES",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-021",
+  "name": "CLOXACILLIN",
+  "variant": "AXILLIN",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-022",
+  "name": "CO AMOXICLAV",
+  "variant": "RITE MED",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-023",
+  "name": "DECOLGEN",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-024",
+  "name": "DEQUALINIUM CHL",
+  "variant": "DEQUADIN",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-025",
+  "name": "FLUIMUCIL",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-026",
+  "name": "HNBB",
+  "variant": "HYOPAN",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-027",
+  "name": "KREMIL-S",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-028",
+  "name": "LOPERAMIDE",
+  "variant": "DATAB",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-029",
+  "name": "LOPERAMIDE",
+  "variant": "DIATABS",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-030",
+  "name": "LOZEMED",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-031",
+  "name": "MECLIZINE",
+  "variant": "BONAMINE",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-032",
+  "name": "MEFENAMIC ACID",
+  "variant": "DOLFENAL",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-033",
+  "name": "MEFENAMIC ACID",
+  "variant": "Generic",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-034",
+  "name": "METOCLOPRAMIDE",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-035",
+  "name": "NEOZEP",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-036",
+  "name": "OMEPRAZOLE",
+  "variant": "RITE MED / MEPRACID",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-037",
+  "name": "ORS",
+  "variant": "HYDRITE",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-038",
+  "name": "PARACETAMOL",
+  "variant": "BIOGESIC",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-039",
+  "name": "SALBUTAMOL",
+  "variant": "NEBULES",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-040",
+  "name": "SINECOD",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-041",
+  "name": "SINUPRET FORTE",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-042",
+  "name": "STREPSILS",
+  "variant": "BY 8",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-043",
+  "name": "TRANEXAMIC ACID",
+  "variant": "HEMOSTAN",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-044",
+  "name": "TUSERAN",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-045",
+  "name": "ZINC OXIDE",
+  "variant": "CALMOSEPTINE",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-046",
+  "name": "AMOXICILLIN TRIHYDRATE",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-047",
+  "name": "CELECOXIB",
+  "variant": "RHEA",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-048",
+  "name": "CELECOXIB",
+  "variant": "RITE MED",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-049",
+  "name": "CLARITHROMYCIN",
+  "variant": "CLARITOL",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-050",
+  "name": "ENERVON",
+  "variant": null,
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-051",
+  "name": "IBUPROFEN",
+  "variant": "MEDICOL",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "MED-052",
+  "name": "SODIUM ASCORBATE",
+  "variant": "IMMUNO PRO",
+  "category": "MEDICINE"
+ },
+ {
+  "id": "TOP-001",
+  "name": "ACEITE DE MANZANILLA",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-002",
+  "name": "BAND AID",
+  "variant": "MEDIPLAS",
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-003",
+  "name": "BURN OINTMENT",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-004",
+  "name": "CALAMINE LOTION",
+  "variant": "CALADRYL",
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-005",
+  "name": "EFFICASCENT OIL",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-006",
+  "name": "HIVENT",
+  "variant": "NEBULES",
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-007",
+  "name": "HYDROCORTISONE OINTMENT",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-008",
+  "name": "KAMILOSAN",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-009",
+  "name": "MUPIROCINE OINTMENT",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-010",
+  "name": "OMEGA LINEMENT",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-011",
+  "name": "OMEGA SPRAY",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-012",
+  "name": "PAU LINEMENT",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-013",
+  "name": "SALONPAS",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-014",
+  "name": "SPIRIT OF AMMONIA",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-015",
+  "name": "TOBRAMYCIN",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-016",
+  "name": "VICKS",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-017",
+  "name": "WHITE FLOWER LINEMENT",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "SUP-001",
+  "name": "COTTON BALLS",
+  "variant": "150 BALLS PER PACK",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-002",
+  "name": "COTTON BUDS",
+  "variant": "PACK",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-003",
+  "name": "ELASTIC BANDAGE 10CMX4.5M",
+  "variant": "GINGERMED",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-004",
+  "name": "ELASTIC BANDAGE 10CMX4.5M",
+  "variant": "ORMED",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-005",
+  "name": "ELASTIC BANDAGE 10CMX4.5M",
+  "variant": "SUREGUARD",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-006",
+  "name": "ELASTIC BANDAGE 5CMX4.5M",
+  "variant": "MEDI",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-007",
+  "name": "ELASTIC BANDAGE 5CMX4.5M",
+  "variant": "PARTNERS",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-008",
+  "name": "FACE MASK -FR. OFFICE OF THE VICE MAYOR",
+  "variant": "RECEIVED-2/20/2025",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-009",
+  "name": "FACE MASK- MEDI CLEAN",
+  "variant": "50PCS/BOX",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-010",
+  "name": "FACEMASK- OREX",
+  "variant": "50PC/BOX",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-011",
+  "name": "FACEMASK-INDOPLAS",
+  "variant": "50PCS/BOX",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-012",
+  "name": "GAUZE- OREX (STERILE PAD 4X4) 100PC/BOX",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-013",
+  "name": "GAUZE- PARTNERS (STERILE 2X2)100/BOX",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-014",
+  "name": "GAUZE- SUREGUARD (STERILE 4X4)100PC/BOX",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-015",
+  "name": "GAUZE-SUREGUARD (STERILE PAD 2X2)100/BOX",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-016",
+  "name": "GLOVES: STERILE (SUREGUARD SIZE 7)-50/BOX",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-017",
+  "name": "GLOVES:EXAMINATION GLOVES-INDOPLAS",
+  "variant": "100 GLOVES/BOX",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-018",
+  "name": "LANCET",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-019",
+  "name": "LEUKOPLAST",
+  "variant": "1.25CM",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-020",
+  "name": "LEUKOPLAST",
+  "variant": "2.5CM",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-021",
+  "name": "M TAPE",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-022",
+  "name": "MICROPORE TAPE",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-023",
+  "name": "SANITARY NAPKIN- THOSE DAYS",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-024",
+  "name": "SANITARY NAPKIN- WHISPER",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-025",
+  "name": "SINOCARE STRIP",
+  "variant": "50PCS./BTL",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-026",
+  "name": "STERILE EYE PATCH",
+  "variant": "PAIR",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-027",
+  "name": "SYRINGE- 1CC",
+  "variant": "100/BOX",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-028",
+  "name": "SYRINGE- 3CC",
+  "variant": "100/BOX",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-029",
+  "name": "SYRINGE-5CC",
+  "variant": "100/BOX",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-030",
+  "name": "TISSUE ROLL",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SOL-001",
+  "name": "ALCOHOL WITH PUMP",
+  "variant": "1LITER",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SOL-002",
+  "name": "DEXTROSE- 0.9 NaCl",
+  "variant": "500ML",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SOL-003",
+  "name": "DEXTROSE- D5LR",
+  "variant": "500ML",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SOL-004",
+  "name": "DEXTROSE- LACTATED RINGERS",
+  "variant": "500ML",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SOL-005",
+  "name": "HYDROGEN PEROXIDE",
+  "variant": "120ML",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SOL-006",
+  "name": "POVIDONE IODINE",
+  "variant": "120 ML",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SOL-007",
+  "name": "POVIDONE IODINE",
+  "variant": "500 ML",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SOL-008",
+  "name": "PURIFIED H2O",
+  "variant": "1000ML",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SOL-009",
+  "name": "STERILE WATER FOR INJECTION",
+  "variant": "50ML",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SOL-010",
+  "name": "HAND SOAP",
+  "variant": null,
+  "category": "SOLUTION"
+ },
+ {
+  "id": "EQP-001",
+  "name": "ANKLE SUPPORT",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-002",
+  "name": "ARM SLING",
+  "variant": "LARGE",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-003",
+  "name": "ARM SLING",
+  "variant": "MEDIUM",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-004",
+  "name": "ARM SLING",
+  "variant": "SMALL",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-005",
+  "name": "CERVICAL COLLAR",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-006",
+  "name": "CLAVICLE BRACE",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-007",
+  "name": "FUTURO KNEE SUPPORT",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-008",
+  "name": "HANDLED EYE OCCLUDER",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-009",
+  "name": "HEPARIN CAP",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-010",
+  "name": "ICE BAG",
+  "variant": "USED",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-011",
+  "name": "ICE BAG WITH BOX",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-012",
+  "name": "IV CANNULA- CAN CARE 22G",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-013",
+  "name": "KNEE SUPPORT",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-014",
+  "name": "LONGBONE ORTHOPEDIC SOFT GOODS",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-015",
+  "name": "MAMA'S CHOICE BREASTMILK SOTRAGE BAG",
+  "variant": "BOX",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-016",
+  "name": "NEBULIZER KIT",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-017",
+  "name": "NEBULIZER MASK",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-018",
+  "name": "OXYGEN CANNULA",
+  "variant": "ADULT",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-019",
+  "name": "OXYGEN CANNULA",
+  "variant": "PEDIA",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-020",
+  "name": "OXYGEN MASK",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-021",
+  "name": "PENLIGHT- WILCAREW DIAGNOSTIC LAMP",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-022",
+  "name": "SAM SPLINT",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-023",
+  "name": "SPIDER STRAP",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-024",
+  "name": "SUPREME CPR MASK",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-025",
+  "name": "TONGUE DEPRESSOR",
+  "variant": "100PC/BOX",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-026",
+  "name": "TUDOR (NON ABSORBABLE SUTURE)3/O- BOX",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-027",
+  "name": "TUDOR (NON ABSORBABLE SUTURE)4/O- PC.",
+  "variant": null,
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-028",
+  "name": "UNDER WRAP FOAM",
+  "variant": "INTACT",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "EQP-029",
+  "name": "UNDER WRAP FOAM",
+  "variant": "SHATTERED",
+  "category": "EQUIPMENT"
+ },
+ {
+  "id": "MSC-001",
+  "name": "DISINFECTANT CLEANER",
+  "variant": "GALLON",
+  "category": "MISC"
+ },
+ {
+  "id": "MSC-002",
+  "name": "GARBAGE BAG",
+  "variant": "PACK",
+  "category": "MISC"
+ },
+ {
+  "id": "TOP-018",
+  "name": "BABY OIL",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-019",
+  "name": "COOLING SPRAY",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-020",
+  "name": "EYE MO",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-021",
+  "name": "PETROLEUM JELLY",
+  "variant": null,
+  "category": "TOPICAL"
+ },
+ {
+  "id": "TOP-022",
+  "name": "SALONPAS",
+  "variant": "PATCHES",
+  "category": "TOPICAL"
+ },
+ {
+  "id": "SUP-031",
+  "name": "STERI-STRIP",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-032",
+  "name": "ALCOHOL SWAB",
+  "variant": "100/BOX",
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SUP-033",
+  "name": "GAUZE-SURGITECH (STERILE PAD 2X2)100/BOX",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SOL-011",
+  "name": "POVIDONE IODINE",
+  "variant": "60 ML",
+  "category": "SOLUTION"
+ },
+ {
+  "id": "SUP-034",
+  "name": "SANITARY NAPKIN- SISTER",
+  "variant": null,
+  "category": "SUPPLY"
+ },
+ {
+  "id": "SOL-012",
+  "name": "ALCOHOL GALLON",
+  "variant": "1LITER",
+  "category": "SOLUTION"
+ }
+]

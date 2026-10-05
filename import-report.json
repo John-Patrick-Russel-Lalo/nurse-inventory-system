@@ -1,0 +1,792 @@
+{
+  "generatedAt": "2026-10-05T15:48:04.981Z",
+  "workbook": "C:\\Users\\John Patrick Lalo\\OneDrive\\Desktop\\old projects\\datset nurse\\NURSE.xlsx",
+  "today": "2026-10-05",
+  "months": [
+    {
+      "sheet": "FEBRUARY 2025",
+      "month": "2025-02",
+      "rows": 1806,
+      "firstDate": "2025-02-10",
+      "lastDate": "2025-02-27"
+    },
+    {
+      "sheet": "MARCH 2025",
+      "month": "2025-03",
+      "rows": 2730,
+      "firstDate": "2025-03-03",
+      "lastDate": "2025-03-31"
+    },
+    {
+      "sheet": "APRIL 2025",
+      "month": "2025-04",
+      "rows": 2860,
+      "firstDate": "2025-04-01",
+      "lastDate": "2025-04-30"
+    },
+    {
+      "sheet": "MAY 2025",
+      "month": "2025-05",
+      "rows": 2860,
+      "firstDate": "2025-05-01",
+      "lastDate": "2025-05-30"
+    },
+    {
+      "sheet": "JUNE 2025",
+      "month": "2025-06",
+      "rows": 2877,
+      "firstDate": "2025-06-02",
+      "lastDate": "2025-06-30"
+    },
+    {
+      "sheet": "JULY 2025",
+      "month": "2025-07",
+      "rows": 4371,
+      "firstDate": "2025-07-01",
+      "lastDate": "2025-07-31"
+    },
+    {
+      "sheet": "AUGUST 2025",
+      "month": "2025-08",
+      "rows": 4464,
+      "firstDate": "2025-08-01",
+      "lastDate": "2025-08-31"
+    },
+    {
+      "sheet": "SEPTEMBER 2025",
+      "month": "2025-09",
+      "rows": 4320,
+      "firstDate": "2025-09-01",
+      "lastDate": "2025-09-30"
+    },
+    {
+      "sheet": "OCTOBER 2025",
+      "month": "2025-10",
+      "rows": 4495,
+      "firstDate": "2025-10-01",
+      "lastDate": "2025-10-31"
+    },
+    {
+      "sheet": "NOVEMBER 2025",
+      "month": "2025-11",
+      "rows": 4350,
+      "firstDate": "2025-11-01",
+      "lastDate": "2025-11-30"
+    },
+    {
+      "sheet": "DECEMBER 2025",
+      "month": "2025-12",
+      "rows": 4495,
+      "firstDate": "2025-12-01",
+      "lastDate": "2025-12-31"
+    },
+    {
+      "sheet": "JANUARY 2026",
+      "month": "2026-01",
+      "rows": 3968,
+      "firstDate": "2026-01-01",
+      "lastDate": "2026-01-31"
+    },
+    {
+      "sheet": "FEBRUARY 2026",
+      "month": "2026-02",
+      "rows": 3612,
+      "firstDate": "2026-02-01",
+      "lastDate": "2026-02-28"
+    },
+    {
+      "sheet": "MARCH 2026",
+      "month": "2026-03",
+      "rows": 3999,
+      "firstDate": "2026-03-01",
+      "lastDate": "2026-03-31"
+    },
+    {
+      "sheet": "APRIL 2026",
+      "month": "2026-04",
+      "rows": 3870,
+      "firstDate": "2026-04-01",
+      "lastDate": "2026-04-30"
+    },
+    {
+      "sheet": "MAY 2026",
+      "month": "2026-05",
+      "rows": 4154,
+      "firstDate": "2026-05-01",
+      "lastDate": "2026-05-31"
+    },
+    {
+      "sheet": "JUNE 2026",
+      "month": "2026-06",
+      "rows": 4020,
+      "firstDate": "2026-06-01",
+      "lastDate": "2026-06-30"
+    },
+    {
+      "sheet": "JULY 2026",
+      "month": "2026-07",
+      "rows": 4154,
+      "firstDate": "2026-07-01",
+      "lastDate": "2026-07-31"
+    },
+    {
+      "sheet": "AUGUST 2026",
+      "month": "2026-08",
+      "rows": 4154,
+      "firstDate": "2026-08-01",
+      "lastDate": "2026-08-31"
+    },
+    {
+      "sheet": "SEPTEMBER 2026",
+      "month": "2026-09",
+      "rows": 2160,
+      "firstDate": "2026-09-01",
+      "lastDate": "2026-09-16"
+    }
+  ],
+  "sources": [
+    {
+      "month": "2025-02",
+      "source": "HSO ALANGILAN"
+    },
+    {
+      "month": "2025-03",
+      "source": "HSO Alangilan"
+    },
+    {
+      "month": "2025-06",
+      "source": "HSO Alangilan"
+    },
+    {
+      "month": "2025-07",
+      "source": "HSO Alangilan"
+    },
+    {
+      "month": "2025-08",
+      "source": "HSO Alangilan"
+    },
+    {
+      "month": "2025-10",
+      "source": "HSO Alangilan"
+    },
+    {
+      "month": "2025-11",
+      "source": "HSO Alangilan"
+    },
+    {
+      "month": "2026-02",
+      "source": "HSO Alangilan"
+    },
+    {
+      "month": "2026-05",
+      "source": "HSO Alangilan"
+    },
+    {
+      "month": "2026-08",
+      "source": "HSO Alangilan"
+    },
+    {
+      "month": "2026-09",
+      "source": "HSO Alangilan"
+    }
+  ],
+  "summary": {
+    "items": 151,
+    "days": 327,
+    "firstDate": "2025-02-10",
+    "lastDate": "2026-09-16",
+    "months": 20,
+    "counts": {
+      "OPENING": 86,
+      "RECEIVE": 137,
+      "DISPENSE": 1437,
+      "ADJUST": 15,
+      "DISPOSE": 0
+    },
+    "openingUnits": 4826,
+    "receivedUnits": 9659,
+    "dispensedUnits": 5673,
+    "adjustUnits": 206,
+    "unitsOnHand": 9018,
+    "stockedBatches": 125
+  },
+  "reconciliation": {
+    "monthEndsChecked": 2706,
+    "mismatches": [],
+    "received": {
+      "inWorkbook": 9659,
+      "planned": 9659
+    },
+    "dispensed": {
+      "inWorkbook": 5673,
+      "planned": 5673
+    }
+  },
+  "gaps": [
+    {
+      "itemId": "MED-018",
+      "date": "2026-02-01",
+      "from": 192,
+      "to": 200,
+      "difference": 8,
+      "previousMonth": "2026-01",
+      "month": "2026-02",
+      "midTab": false
+    },
+    {
+      "itemId": "MED-044",
+      "date": "2025-11-01",
+      "from": 9,
+      "to": 90,
+      "difference": 81,
+      "previousMonth": "2025-10",
+      "month": "2025-11",
+      "midTab": false
+    },
+    {
+      "itemId": "TOP-002",
+      "date": "2025-05-01",
+      "from": 1096,
+      "to": 1098,
+      "difference": 2,
+      "previousMonth": "2025-04",
+      "month": "2025-05",
+      "midTab": false
+    },
+    {
+      "itemId": "TOP-002",
+      "date": "2026-06-01",
+      "from": 963,
+      "to": 965,
+      "difference": 2,
+      "previousMonth": "2026-05",
+      "month": "2026-06",
+      "midTab": false
+    },
+    {
+      "itemId": "TOP-002",
+      "date": "2026-07-01",
+      "from": 963,
+      "to": 965,
+      "difference": 2,
+      "previousMonth": "2026-06",
+      "month": "2026-07",
+      "midTab": false
+    },
+    {
+      "itemId": "TOP-002",
+      "date": "2026-08-01",
+      "from": 963,
+      "to": 965,
+      "difference": 2,
+      "previousMonth": "2026-07",
+      "month": "2026-08",
+      "midTab": false
+    },
+    {
+      "itemId": "TOP-002",
+      "date": "2026-09-01",
+      "from": 963,
+      "to": 965,
+      "difference": 2,
+      "previousMonth": "2026-08",
+      "month": "2026-09",
+      "midTab": false
+    },
+    {
+      "itemId": "TOP-008",
+      "date": "2026-07-01",
+      "from": 3,
+      "to": 4,
+      "difference": 1,
+      "previousMonth": "2026-06",
+      "month": "2026-07",
+      "midTab": false
+    },
+    {
+      "itemId": "SUP-007",
+      "date": "2026-03-01",
+      "from": 8,
+      "to": 9,
+      "difference": 1,
+      "previousMonth": "2026-02",
+      "month": "2026-03",
+      "midTab": false
+    },
+    {
+      "itemId": "SUP-008",
+      "date": "2026-01-01",
+      "from": 1829,
+      "to": 1929,
+      "difference": 100,
+      "previousMonth": "2025-12",
+      "month": "2026-01",
+      "midTab": false
+    },
+    {
+      "itemId": "SUP-030",
+      "date": "2026-06-01",
+      "from": 148,
+      "to": 149,
+      "difference": 1,
+      "previousMonth": "2026-05",
+      "month": "2026-06",
+      "midTab": false
+    },
+    {
+      "itemId": "SUP-030",
+      "date": "2026-07-01",
+      "from": 148,
+      "to": 149,
+      "difference": 1,
+      "previousMonth": "2026-06",
+      "month": "2026-07",
+      "midTab": false
+    },
+    {
+      "itemId": "SUP-030",
+      "date": "2026-08-01",
+      "from": 148,
+      "to": 149,
+      "difference": 1,
+      "previousMonth": "2026-07",
+      "month": "2026-08",
+      "midTab": false
+    },
+    {
+      "itemId": "SUP-030",
+      "date": "2026-09-01",
+      "from": 148,
+      "to": 149,
+      "difference": 1,
+      "previousMonth": "2026-08",
+      "month": "2026-09",
+      "midTab": false
+    },
+    {
+      "itemId": "TOP-020",
+      "date": "2025-09-01",
+      "from": 2,
+      "to": 3,
+      "difference": 1,
+      "previousMonth": "2025-08",
+      "month": "2025-09",
+      "midTab": false
+    }
+  ],
+  "lateOpenings": [
+    {
+      "itemId": "TOP-022",
+      "date": "2025-06-02",
+      "qty": 18
+    }
+  ],
+  "noExpiry": [
+    {
+      "itemId": "EQP-001",
+      "expiry": null,
+      "balance": 2
+    },
+    {
+      "itemId": "EQP-002",
+      "expiry": null,
+      "balance": 3
+    },
+    {
+      "itemId": "EQP-003",
+      "expiry": null,
+      "balance": 3
+    },
+    {
+      "itemId": "EQP-004",
+      "expiry": null,
+      "balance": 2
+    },
+    {
+      "itemId": "EQP-005",
+      "expiry": null,
+      "balance": 2
+    },
+    {
+      "itemId": "EQP-006",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "EQP-007",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "EQP-008",
+      "expiry": null,
+      "balance": 2
+    },
+    {
+      "itemId": "EQP-010",
+      "expiry": null,
+      "balance": 3
+    },
+    {
+      "itemId": "EQP-011",
+      "expiry": null,
+      "balance": 5
+    },
+    {
+      "itemId": "EQP-013",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "EQP-014",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "EQP-015",
+      "expiry": null,
+      "balance": 2
+    },
+    {
+      "itemId": "EQP-021",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "EQP-022",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "EQP-023",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "EQP-024",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "EQP-026",
+      "expiry": null,
+      "balance": 2
+    },
+    {
+      "itemId": "EQP-028",
+      "expiry": null,
+      "balance": 4
+    },
+    {
+      "itemId": "EQP-029",
+      "expiry": null,
+      "balance": 5
+    },
+    {
+      "itemId": "MED-002",
+      "expiry": null,
+      "balance": 20
+    },
+    {
+      "itemId": "MSC-001",
+      "expiry": null,
+      "balance": 5
+    },
+    {
+      "itemId": "MSC-002",
+      "expiry": null,
+      "balance": 6
+    },
+    {
+      "itemId": "SOL-001",
+      "expiry": null,
+      "balance": 8
+    },
+    {
+      "itemId": "SOL-010",
+      "expiry": null,
+      "balance": 11
+    },
+    {
+      "itemId": "SOL-011",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "SOL-012",
+      "expiry": null,
+      "balance": 6
+    },
+    {
+      "itemId": "SUP-001",
+      "expiry": null,
+      "balance": 13
+    },
+    {
+      "itemId": "SUP-002",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "SUP-003",
+      "expiry": null,
+      "balance": 3
+    },
+    {
+      "itemId": "SUP-006",
+      "expiry": null,
+      "balance": 3
+    },
+    {
+      "itemId": "SUP-008",
+      "expiry": null,
+      "balance": 1929
+    },
+    {
+      "itemId": "SUP-021",
+      "expiry": null,
+      "balance": 3
+    },
+    {
+      "itemId": "SUP-026",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "SUP-030",
+      "expiry": null,
+      "balance": 149
+    },
+    {
+      "itemId": "SUP-032",
+      "expiry": null,
+      "balance": 800
+    },
+    {
+      "itemId": "SUP-033",
+      "expiry": null,
+      "balance": 100
+    },
+    {
+      "itemId": "SUP-034",
+      "expiry": null,
+      "balance": 48
+    },
+    {
+      "itemId": "TOP-002",
+      "expiry": null,
+      "balance": 965
+    },
+    {
+      "itemId": "TOP-013",
+      "expiry": null,
+      "balance": 18
+    },
+    {
+      "itemId": "TOP-016",
+      "expiry": null,
+      "balance": 3
+    },
+    {
+      "itemId": "TOP-018",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "TOP-019",
+      "expiry": null,
+      "balance": 1
+    },
+    {
+      "itemId": "TOP-022",
+      "expiry": null,
+      "balance": 4
+    }
+  ],
+  "expired": [
+    {
+      "itemId": "SUP-020",
+      "expiry": "2021-02-28",
+      "balance": 1
+    },
+    {
+      "itemId": "MED-010",
+      "expiry": "2025-06-30",
+      "balance": 186
+    },
+    {
+      "itemId": "MED-040",
+      "expiry": "2025-06-30",
+      "balance": 10
+    },
+    {
+      "itemId": "SOL-003",
+      "expiry": "2025-06-30",
+      "balance": 1
+    },
+    {
+      "itemId": "MED-045",
+      "expiry": "2025-07-31",
+      "balance": 27
+    },
+    {
+      "itemId": "EQP-027",
+      "expiry": "2025-08-31",
+      "balance": 1
+    },
+    {
+      "itemId": "MED-027",
+      "expiry": "2025-10-31",
+      "balance": 68
+    },
+    {
+      "itemId": "TOP-009",
+      "expiry": "2026-02-28",
+      "balance": 2
+    },
+    {
+      "itemId": "MED-036",
+      "expiry": "2026-04-30",
+      "balance": 139
+    },
+    {
+      "itemId": "SUP-025",
+      "expiry": "2026-04-30",
+      "balance": 2
+    },
+    {
+      "itemId": "MED-023",
+      "expiry": "2026-05-31",
+      "balance": 73
+    },
+    {
+      "itemId": "EQP-020",
+      "expiry": "2026-06-30",
+      "balance": 2
+    },
+    {
+      "itemId": "MED-011",
+      "expiry": "2026-06-30",
+      "balance": 500
+    },
+    {
+      "itemId": "MED-038",
+      "expiry": "2026-06-30",
+      "balance": 370
+    },
+    {
+      "itemId": "MED-007",
+      "expiry": "2026-07-31",
+      "balance": 180
+    },
+    {
+      "itemId": "SOL-007",
+      "expiry": "2026-07-31",
+      "balance": 3
+    },
+    {
+      "itemId": "TOP-006",
+      "expiry": "2026-08-31",
+      "balance": 23
+    },
+    {
+      "itemId": "EQP-025",
+      "expiry": "2026-09-30",
+      "balance": 297
+    },
+    {
+      "itemId": "MED-025",
+      "expiry": "2026-09-30",
+      "balance": 32
+    },
+    {
+      "itemId": "SOL-005",
+      "expiry": "2026-09-30",
+      "balance": 1
+    }
+  ],
+  "stoppedRecording": [
+    {
+      "itemId": "TOP-013",
+      "lastDate": "2025-05-30",
+      "balance": 18
+    },
+    {
+      "itemId": "MED-046",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "MED-047",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "MED-048",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "MED-049",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "MED-050",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "MED-051",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "MED-052",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "SUP-010",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "SUP-011",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "SUP-019",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "SUP-023",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "SUP-024",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "TOP-012",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "TOP-014",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    },
+    {
+      "itemId": "TOP-015",
+      "lastDate": "2025-12-31",
+      "balance": 0
+    }
+  ],
+  "unusedItems": [],
+  "unmatchedWideRows": []
+}
