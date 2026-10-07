@@ -88,6 +88,54 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 const post = <T>(path: string, body: unknown) =>
   request<T>(path, { method: "POST", body: JSON.stringify(body) });
 
+/** URLs of the routes that answer with a file rather than JSON. */
+export const downloadUrls = {
+  /** The long-format tab. A month is what the office exports; from/to takes a wider range. */
+  ledger: (q?: { month?: string; from?: string; to?: string; activeOnly?: boolean }) =>
+    `/api/export/ledger${qs(q)}`,
+  stock: (q?: Query) => `/api/export/stock${qs(q)}`,
+};
+
+/** The filename the server asked for, which knows the range that was actually exported. */
+function fileNameFrom(disposition: string | null, fallback: string): string {
+  const match = disposition ? /filename="?([^";]+)"?/i.exec(disposition) : null;
+  return match?.[1] ?? fallback;
+}
+
+/**
+ * Downloads a file from an API route. Fetched rather than pointed at by a plain link, so an
+ * expired session or a refused range shows the reason on screen instead of quietly saving a JSON
+ * error body under an .xlsx name.
+ */
+export async function downloadFile(path: string, fallbackName: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(path);
+  } catch {
+    throw new ApiError("Could not reach the server. Check your connection.", 0, "OFFLINE");
+  }
+
+  if (!response.ok) {
+    let message = `Request failed (${response.status}).`;
+    try {
+      const body = (await response.json()) as { error?: string };
+      if (body?.error) message = body.error;
+    } catch {
+      // Not a JSON error body, so the status line is all there is to go on.
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileNameFrom(response.headers.get("Content-Disposition"), fallbackName);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   session: () => request<SessionInfo>("/api/session"),
   dashboard: () => request<DashboardData>("/api/dashboard"),

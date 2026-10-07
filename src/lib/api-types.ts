@@ -72,6 +72,10 @@ export interface ItemDetail {
   lowStock: boolean;
   batches: BatchView[];
   transactions: TransactionView[];
+  /** Received and dispensed per month, oldest first, over the item's whole life. */
+  monthly: MonthUsage[];
+  /** The balance at each month end, same months as `monthly`. */
+  balances: MonthBalance[];
 }
 
 export interface StockRow {
@@ -173,13 +177,37 @@ export interface ExpiringBatch {
   daysLeft: number;
 }
 
+/** One month of movement. An entry counts by the direction it moved the stock, so received
+ *  minus dispensed is always the change in stock. */
+export interface MonthUsage {
+  /** "YYYY-MM". */
+  month: string;
+  received: number;
+  dispensed: number;
+}
+
+/** What an item held at the end of a month. */
+export interface MonthBalance {
+  month: string;
+  balance: number;
+}
+
+/** An item, and how much of it the office used in a month. */
+export interface TopUsedItem {
+  itemId: string;
+  itemName: string;
+  dispensed: number;
+}
+
 export interface DashboardData {
   itemCount: number;
   lowStock: ItemSummary[];
   expiringSoon: ExpiringBatch[];
   expired: { itemId: string; itemName: string; balance: number }[];
-  /** Totals for the month in progress. */
-  monthTotals: { month: string; received: number; dispensed: number }[];
+  /** The last twelve months, oldest first. The final entry is the month in progress. */
+  monthTotals: MonthUsage[];
+  /** What the office used most in the month in progress. */
+  topUsed: TopUsedItem[];
   recent: TransactionView[];
 }
 

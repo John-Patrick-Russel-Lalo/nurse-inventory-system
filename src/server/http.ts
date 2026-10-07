@@ -87,3 +87,18 @@ export async function handle(fn: () => Promise<unknown>): Promise<NextResponse> 
     return NextResponse.json(body, { status });
   }
 }
+
+/**
+ * The same mapping as handle(), for a route whose success case answers with a file rather than
+ * JSON. Failures still come back as JSON with a real status, so a download that cannot be built
+ * shows the reason instead of saving a corrupt spreadsheet.
+ */
+export async function handleFile(fn: () => Promise<Response>): Promise<Response> {
+  try {
+    return await fn();
+  } catch (e) {
+    const { status, body } = toBody(e);
+    if (status >= 500) console.error("[api]", e);
+    return NextResponse.json(body, { status });
+  }
+}

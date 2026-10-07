@@ -8,6 +8,7 @@ import { CATEGORIES, type Category, type ItemPatchBody } from "@/lib/api-types";
 import { useApi } from "@/lib/use-api";
 import { usePermissions } from "@/components/SessionProvider";
 import { TxTable } from "@/components/TxTable";
+import { BalanceLineChart, UsageTrendChart } from "@/components/Charts";
 import {
   Alert,
   Button,
@@ -17,11 +18,18 @@ import {
   ExpiryBadge,
   Field,
   Input,
+  Checkbox,
+  IconChevron,
   Loading,
   PageHeader,
+  Panel,
   Select,
   Stat,
+  TableWrap,
   cn,
+  rowClass,
+  thClass,
+  thRightClass,
 } from "@/components/ui";
 
 export default function ItemDetailPage() {
@@ -34,14 +42,22 @@ export default function ItemDetailPage() {
   if (error) return <ErrorNote error={new Error(error)} />;
   if (!data) return null;
 
-  const { item, batches, transactions } = data;
+  const { item, batches, transactions, monthly, balances } = data;
   const stocked = batches.filter((b) => b.balance !== 0);
+  // Every month is labelled, but twenty-odd of them is too many to read on an axis, so the
+  // chart thins them out rather than rotating the labels.
+  const step = Math.max(1, Math.ceil(monthly.length / 12));
+  const usage = monthly.filter((_, i) => i % step === 0 || i === monthly.length - 1);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/items" className="text-sm text-muted underline underline-offset-2 hover:text-fg">
-          ← All items
+        <Link
+          href="/items"
+          className="-ml-1.5 inline-flex h-8 items-center gap-1.5 rounded-lg px-1.5 text-sm text-muted transition-colors hover:bg-surface hover:text-fg"
+        >
+          <IconChevron className="size-4 rotate-180" />
+          All items
         </Link>
         <PageHeader
           title={item.variant ? `${item.name} · ${item.variant}` : item.name}
@@ -62,69 +78,94 @@ export default function ItemDetailPage() {
       </div>
 
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="On hand" value={data.balance} tone={data.lowStock ? "warn" : "plain"} />
-        <Stat label="Batches with stock" value={stocked.length} />
-        <Stat label="Unit" value={item.unit ?? "—"} />
-        <Stat label="Reorder at" value={item.reorderLevel ?? "—"} tone={item.reorderLevel === null ? "warn" : "plain"} />
+        <Stat label="On hand" value={data.balance} tone={data.lowStock ? "warn" : "plain"} hint={item.unit ?? "No unit set"} />
+        <Stat label="Batches with stock" value={stocked.length} hint={`${batches.length} in total`} />
+        <Stat label="Unit" value={item.unit ?? "—"} tone={item.unit ? "plain" : "warn"} hint="Used on every entry" />
+        <Stat
+          label="Reorder at"
+          value={item.reorderLevel ?? "—"}
+          tone={item.reorderLevel === null ? "warn" : "plain"}
+          hint={item.reorderLevel === null ? "Not set" : "Low stock below this"}
+        />
       </dl>
 
       {data.lowStock ? (
         <Alert tone="warn">
-          At or below the reorder level of {item.reorderLevel}.{" "}
-          <Link href="/receive" className="underline underline-offset-2">
+          <span className="font-medium">At or below the reorder level of {item.reorderLevel}.</span>{" "}
+          <Link href="/receive" className="font-medium underline underline-offset-2">
             Receive more
           </Link>
-          .
         </Alert>
       ) : null}
 
       {editing && isAdmin ? <EditItemPanel itemId={item.id} current={item} onSaved={reload} /> : null}
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Batches</h2>
+      <Panel
+        title="Batches"
+        description="Each batch is one expiry date. This is what every balance is added up from."
+      >
         {batches.length === 0 ? (
           <EmptyState
             title="No batches yet."
             hint="A batch appears once stock is received. Items with no known expiry get one shared “unknown expiry” batch."
+            action={<Link href="/receive">Receive stock</Link>}
           />
         ) : (
-          <div className="overflow-x-auto rounded-md border border-rule">
-            <table className="w-full border-collapse text-sm">
-              <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
-                <tr>
-                  <th scope="col" className="px-3 py-2 font-medium">Batch</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Expiry</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Status</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Received on</th>
-                  <th scope="col" className="px-3 py-2 text-right font-medium">In</th>
-                  <th scope="col" className="px-3 py-2 text-right font-medium">Balance</th>
+          <TableWrap>
+            <thead>
+              <tr>
+                <th scope="col" className={thClass}>Batch</th>
+                <th scope="col" className={thClass}>Expiry</th>
+                <th scope="col" className={thClass}>Status</th>
+                <th scope="col" className={thClass}>Received on</th>
+                <th scope="col" className={thRightClass}>In</th>
+                <th scope="col" className={thRightClass}>Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {batches.map((b) => (
+                <tr key={b.id} className={rowClass}>
+                  <td className="px-3 py-2.5 font-mono text-xs">
+                    #{b.id}
+                    {b.label ? <span className="ml-1 text-muted">{b.label}</span> : null}
+                    {b.source ? <span className="ml-1 text-muted">· {b.source}</span> : null}
+                  </td>
+                  <td className="px-3 py-2.5 font-mono text-xs">{b.expiry ?? "unknown"}</td>
+                  <td className="px-3 py-2.5"><ExpiryBadge status={b.expiryStatus} /></td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-muted">{b.receivedOn ?? "—"}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-muted">{b.qtyReceived}</td>
+                  <td className={cn("px-3 py-2.5 text-right font-mono font-medium", b.balance === 0 && "text-muted")}>
+                    {b.balance}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {batches.map((b) => (
-                  <tr key={b.id} className="border-t border-rule">
-                    <td className="px-3 py-2 font-mono text-xs">
-                      #{b.id}
-                      {b.label ? <span className="ml-1 text-muted">{b.label}</span> : null}
-                      {b.source ? <span className="ml-1 text-muted">· {b.source}</span> : null}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-xs">{b.expiry ?? "unknown"}</td>
-                    <td className="px-3 py-2"><ExpiryBadge status={b.expiryStatus} /></td>
-                    <td className="px-3 py-2 font-mono text-xs text-muted">{b.receivedOn ?? "—"}</td>
-                    <td className="px-3 py-2 text-right font-mono text-muted">{b.qtyReceived}</td>
-                    <td className={cn("px-3 py-2 text-right font-mono", b.balance === 0 && "text-muted")}>
-                      {b.balance}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableWrap>
         )}
-      </section>
+      </Panel>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Entries</h2>
+      <Panel
+        title="Usage and balance over time"
+        description="Rebuilt from the entries, month by month. Some months are left out when there are many, so the bars are not always consecutive."
+      >
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="flex flex-col gap-2 p-4">
+            <p className="text-sm font-medium">Received and dispensed</p>
+            <UsageTrendChart data={usage} />
+          </Card>
+          <Card className="flex flex-col gap-2 p-4">
+            <p className="text-sm font-medium">
+              On hand at each month end
+              {item.reorderLevel ? (
+                <span className="ml-1 font-normal text-muted">· dashed line is the reorder level</span>
+              ) : null}
+            </p>
+            <BalanceLineChart data={balances} reorderLevel={item.reorderLevel} />
+          </Card>
+        </div>
+      </Panel>
+
+      <Panel title="Entries" description="Everything recorded against this item, newest first.">
         <TxTable
           transactions={transactions}
           showItem={false}
@@ -132,7 +173,7 @@ export default function ItemDetailPage() {
           emptyTitle="No entries yet for this item."
           emptyHint="Use Receive to add the first batch."
         />
-      </section>
+      </Panel>
     </div>
   );
 }
@@ -198,7 +239,10 @@ function EditItemPanel({
   };
 
   return (
-    <Card className="p-4">
+    <Panel
+      title="Edit item"
+      description="Name, unit and reorder level feed the low-stock flag, so changing them affects every screen."
+    >
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Name" htmlFor="e-name">
@@ -238,29 +282,27 @@ function EditItemPanel({
             />
           </Field>
           <Field label="Active" htmlFor="e-active" hint="Inactive items are hidden from every screen.">
-            <label className="flex items-center gap-2 py-2 text-sm">
-              <input
+            <div className="flex h-[38px] items-center">
+              <Checkbox
                 id="e-active"
-                type="checkbox"
+                label={form.active ? "In the catalogue" : "Hidden"}
                 checked={form.active}
                 onChange={(e) => setForm({ ...form, active: e.target.checked })}
-                className="size-4 rounded border-rule accent-[var(--accent)]"
               />
-              {form.active ? "In the catalogue" : "Hidden"}
-            </label>
+            </div>
           </Field>
         </div>
 
         {notice ? <Alert tone="success">{notice}</Alert> : null}
         {error ? <Alert tone="error">{error}</Alert> : null}
 
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={busy}>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" size="md" disabled={busy}>
             {busy ? "Saving…" : "Save changes"}
           </Button>
           <span className="text-xs text-muted">Saved straight to the audit log.</span>
         </div>
       </form>
-    </Card>
+    </Panel>
   );
 }

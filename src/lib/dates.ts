@@ -20,8 +20,14 @@ export function today(): string {
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-export const isDateString = (value: string): boolean =>
-  DATE_RE.test(value) && new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value;
+// "2026-13-01" passes the shape but is not a date, and toISOString throws on it, so the parsed
+// value is checked before it is formatted. Callers rely on this answering false rather than raising.
+export const isDateString = (value: string): boolean => {
+  if (!DATE_RE.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  return parsed.toISOString().slice(0, 10) === value;
+};
 
 export const isMonthString = (value: string): boolean => MONTH_RE.test(value);
 
@@ -59,4 +65,32 @@ export function previousMonth(month: string): string {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 2, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** The month after the given one, as "YYYY-MM". */
+export function nextMonth(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Every month from `from` to `to`, both ends, as "YYYY-MM". Empty when `to` is earlier.
+ * Charts need the quiet months too: a month with no movement is a zero, not a gap.
+ */
+export function monthsBetween(from: string, to: string): string[] {
+  const out: string[] = [];
+  for (let month = from; month <= to; month = nextMonth(month)) out.push(month);
+  return out;
+}
+
+/** The `count` months up to and including `month`, oldest first. */
+export function lastMonths(month: string, count: number): string[] {
+  const out: string[] = [];
+  let cursor = month;
+  for (let i = 0; i < count; i++) {
+    out.unshift(cursor);
+    cursor = previousMonth(cursor);
+  }
+  return out;
 }

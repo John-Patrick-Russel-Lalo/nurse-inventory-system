@@ -31,7 +31,11 @@ export function ThemeToggle() {
   }, [theme]);
 
   return (
-    <div className="flex items-center gap-1 text-xs" role="group" aria-label="Colour theme">
+    <div
+      className="flex items-center gap-0.5 rounded-xl border border-rule bg-surface p-0.5 shadow-card"
+      role="group"
+      aria-label="Colour theme"
+    >
       {ORDER.map((option) => (
         <button
           key={option}
@@ -39,8 +43,10 @@ export function ThemeToggle() {
           aria-pressed={theme === option}
           onClick={() => setTheme(option)}
           className={cn(
-            "rounded px-1.5 py-0.5",
-            theme === option ? "bg-accent-soft font-medium text-accent" : "text-muted hover:text-fg",
+            "cursor-pointer rounded-lg px-2.5 py-1 text-xs transition-[background-color,color,box-shadow] duration-150",
+            theme === option
+              ? "bg-accent-soft font-semibold text-accent shadow-card"
+              : "text-muted hover:text-fg",
           )}
         >
           {LABEL[option]}

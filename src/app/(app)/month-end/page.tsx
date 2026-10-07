@@ -1,23 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/api";
+import { api, downloadUrls } from "@/lib/api";
 import type { CountRow, MonthEndResponse } from "@/lib/api-types";
 import { monthOf, previousMonth } from "@/lib/dates";
 import { usePermissions } from "@/components/SessionProvider";
+import { DownloadButton } from "@/components/DownloadButton";
 import {
   Alert,
   Button,
+  Card,
   EmptyState,
   ErrorNote,
   Field,
   Input,
   Loading,
   PageHeader,
+  Panel,
   Select,
   Stat,
+  TableWrap,
   Textarea,
   cn,
+  rowClass,
+  thClass,
+  thRightClass,
 } from "@/components/ui";
 
 /** A rolling window of months to pick from, ending with the month in progress. */
@@ -142,7 +149,8 @@ export default function MonthEndPage() {
         description="Count the shelf, save the counts, then close the month so nothing can change inside it. Everyone can count; only an admin closes or reopens."
       />
 
-      <div className="flex flex-wrap items-end gap-3">
+      {/* Month picker and the ledger download share one row; the download always matches the month shown. */}
+      <Card className="flex flex-wrap items-end gap-4 p-4">
         <Field label="Month" htmlFor="month" className="w-48">
           <Select id="month" value={month} onChange={(e) => setMonth(e.target.value)}>
             {options.map((m) => (
@@ -153,10 +161,15 @@ export default function MonthEndPage() {
             ))}
           </Select>
         </Field>
-        <Button variant="plain" onClick={() => void load(month)} disabled={loading}>
+        <Button variant="plain" size="md" onClick={() => void load(month)} disabled={loading}>
           {loading ? "Loading…" : "Reload"}
         </Button>
-      </div>
+        <div className="ml-auto">
+          <DownloadButton url={downloadUrls.ledger({ month })} fallbackName={`ledger-${month}.xlsx`} size="md">
+            Download the long-format tab
+          </DownloadButton>
+        </div>
+      </Card>
 
       {notice ? <Alert tone="success">{notice}</Alert> : null}
       {error ? <ErrorNote error={new Error(error)} /> : null}
@@ -165,10 +178,20 @@ export default function MonthEndPage() {
       {sheet ? (
         <>
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Stat label="Items" value={sheet.summary.items} />
-            <Stat label="Counted" value={filled} tone={filled === sheet.summary.items ? "ok" : "warn"} />
-            <Stat label="Variance units" value={variance} tone={variance ? "warn" : "plain"} />
-            <Stat label="Status" value={closed ? "Closed" : "Open"} tone={closed ? "ok" : "plain"} />
+            <Stat label="Items to count" value={sheet.summary.items} />
+            <Stat
+              label="Counted"
+              value={filled}
+              tone={filled === sheet.summary.items ? "ok" : "warn"}
+              hint={`${sheet.summary.items - filled} left`}
+            />
+            <Stat
+              label="Variance units"
+              value={variance}
+              tone={variance ? "warn" : "plain"}
+              hint={variance ? "Counted minus system" : "Everything agrees"}
+            />
+            <Stat label="Status" value={closed ? "Closed" : "Open"} tone={closed ? "ok" : "plain"} hint={month} />
           </dl>
 
           {closed ? (
@@ -178,17 +201,25 @@ export default function MonthEndPage() {
             </Alert>
           ) : null}
 
-          {sheet.counts.length === 0 ? (
-            <EmptyState title="No active items to count." />
-          ) : (
-            <div className="overflow-x-auto rounded-md border border-rule">
-              <table className="w-full border-collapse text-sm">
-                <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
+          {/* The count sheet is the point of the page, so it gets the panel treatment and a
+            caption explaining what the three numbers mean. */}
+          <Panel
+            title={`Count sheet for ${month}`}
+            description="Type what is actually on the shelf. The difference column updates as you go."
+          >
+            {sheet.counts.length === 0 ? (
+              <EmptyState
+                title="No active items to count."
+                hint="Every item in the catalogue is inactive or hidden, so there is nothing to count."
+              />
+            ) : (
+              <TableWrap>
+                <thead>
                   <tr>
-                    <th scope="col" className="px-3 py-2 font-medium">Item</th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">System</th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">Counted</th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">Difference</th>
+                    <th scope="col" className={thClass}>Item</th>
+                    <th scope="col" className={thRightClass}>System says</th>
+                    <th scope="col" className={thRightClass}>You counted</th>
+                    <th scope="col" className={thRightClass}>Difference</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,23 +233,30 @@ export default function MonthEndPage() {
                     />
                   ))}
                 </tbody>
-              </table>
-            </div>
-          )}
+              </TableWrap>
+            )}
+          </Panel>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={save} disabled={busy || closed || dirty.length === 0}>
+          <Panel title="The saved workbook tab" description="What the office keeps on file.">
+            <p className="text-sm text-muted">
+              The download is one row per item per day, where BEGINNING + RECEIVED − DISPENSED = ENDING. It is
+              rebuilt from the entries rather than typed, so the sheet and the app cannot disagree.
+            </p>
+          </Panel>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button size="md" onClick={save} disabled={busy || closed || dirty.length === 0}>
               {busy ? "Working…" : dirty.length ? `Save ${dirty.length} counts` : "Nothing to save"}
             </Button>
 
             {isAdmin && !closed && filled === sheet.summary.items && sheet.summary.items > 0 ? (
-              <Button onClick={close} disabled={busy}>
+              <Button size="md" onClick={close} disabled={busy}>
                 Close {month}
               </Button>
             ) : null}
 
             {isAdmin && closed ? (
-              <Button variant="danger" onClick={() => setReopenFor(month)} disabled={busy}>
+              <Button variant="danger" size="md" onClick={() => setReopenFor(month)} disabled={busy}>
                 Reopen {month}
               </Button>
             ) : null}
@@ -239,15 +277,15 @@ export default function MonthEndPage() {
       ) : null}
 
       {reopenFor ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-md border border-rule bg-surface p-5 shadow-xl">
-            <h2 className="text-lg font-semibold">Reopen {reopenFor}</h2>
-            <p className="mt-1 text-sm text-muted">
-              The saved counts for this month are deleted and entries dated inside it become editable again. The reason
-              is kept in the audit log.
-            </p>
-            <div className="mt-4 flex flex-col gap-3">
-              <Field label="Reason" htmlFor="reopen-reason">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" aria-labelledby="reopen-title">
+          <div className="w-full max-w-md rounded-2xl border border-rule bg-surface p-6 shadow-float">
+            <h2 id="reopen-title" className="text-lg font-semibold">Reopen {reopenFor}</h2>
+            <div className="mt-3 flex flex-col gap-3">
+              <Alert tone="warn">
+                The saved counts for this month are deleted and entries dated inside it become editable again. The
+                reason is kept in the audit log.
+              </Alert>
+              <Field label="Reason" htmlFor="reopen-reason" hint="At least a few words.">
                 <Textarea
                   id="reopen-reason"
                   value={reason}
@@ -257,10 +295,10 @@ export default function MonthEndPage() {
                 />
               </Field>
               <div className="flex justify-end gap-2">
-                <Button variant="plain" onClick={() => setReopenFor(undefined)} disabled={busy}>
+                <Button variant="plain" size="md" onClick={() => setReopenFor(undefined)} disabled={busy}>
                   Cancel
                 </Button>
-                <Button variant="danger" onClick={reopen} disabled={busy || reason.trim().length < 3}>
+                <Button variant="danger" size="md" onClick={reopen} disabled={busy || reason.trim().length < 3}>
                   {busy ? "Reopening…" : "Reopen month"}
                 </Button>
               </div>
@@ -288,13 +326,13 @@ function CountRowView({
   const unmatched = difference !== null && difference !== 0 && row.system === 0;
 
   return (
-    <tr className="border-t border-rule">
+    <tr className={rowClass}>
       <td className="px-3 py-1.5">
-        {row.itemName}
+        <span className="font-medium">{row.itemName}</span>
         {row.variant ? <span className="text-muted"> · {row.variant}</span> : null}
         <span className="ml-2 font-mono text-xs text-muted">{row.itemId}</span>
       </td>
-      <td className="px-3 py-1.5 text-right font-mono">{row.system}</td>
+      <td className="px-3 py-1.5 text-right font-mono text-muted">{row.system}</td>
       <td className="px-3 py-1.5 text-right">
         <Input
           type="number"

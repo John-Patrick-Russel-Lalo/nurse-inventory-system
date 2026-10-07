@@ -8,12 +8,16 @@ import {
   Button,
   EmptyState,
   ErrorNote,
-  Input,
   Loading,
   PageHeader,
+  Panel,
+  SearchInput,
   Select,
   Stat,
+  TableWrap,
   cn,
+  rowClass,
+  thClass,
 } from "@/components/ui";
 
 const ACTIONS = [
@@ -72,33 +76,34 @@ export default function AuditLogPage() {
       />
 
       <form
-        className="flex flex-wrap items-end gap-3"
+        className="flex flex-wrap items-end gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           setOffset(0);
           setApplied({ action, entityId: entityId.trim() });
         }}
       >
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Action
-          <Select value={action} onChange={(e) => setAction(e.target.value)} className="w-52">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="audit-action" className="text-sm font-medium">Action</label>
+          <Select id="audit-action" value={action} onChange={(e) => setAction(e.target.value)} className="w-52">
             {ACTIONS.map((a) => (
               <option key={a} value={a}>
                 {a === "ALL" ? "All actions" : a}
               </option>
             ))}
           </Select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Item or entry
-          <Input
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="audit-entity" className="text-sm font-medium">Item or entry</label>
+          <SearchInput
+            id="audit-entity"
             value={entityId}
             onChange={(e) => setEntityId(e.target.value)}
             placeholder="MED-001 or a month"
             className="w-48"
           />
-        </label>
-        <Button type="submit" variant="plain">
+        </div>
+        <Button type="submit" size="md" className="h-[38px]">
           Filter
         </Button>
       </form>
@@ -109,60 +114,70 @@ export default function AuditLogPage() {
       {data ? (
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Stat label="Matching entries" value={data.total} />
-          <Stat label="Shown" value={entries.length} />
-          <Stat label="Offset" value={offset} />
+          <Stat label="Shown on this page" value={entries.length} hint={`${PAGE} at a time`} />
+          <Stat
+            label="Page"
+            value={data.total === 0 ? 1 : Math.floor(offset / PAGE) + 1}
+            hint={`From entry ${offset + 1}`}
+          />
         </dl>
       ) : null}
 
       {refreshing ? <p className="text-xs text-muted">Loading…</p> : null}
 
       {data && entries.length === 0 ? (
-        <EmptyState title="Nothing matches." hint="Widen the filter to see more." />
+        <EmptyState title="Nothing matches." hint="Widen the filter, or clear the item reference." />
       ) : null}
 
       {entries.length > 0 ? (
         <>
-          <div className="overflow-x-auto rounded-md border border-rule">
-            <table className="w-full border-collapse text-sm">
-              <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
+          <Panel title="Log" description="Newest first. Rows are colour-coded when something was reversed.">
+            <TableWrap className={cn(refreshing && "opacity-60")}>
+              <thead>
                 <tr>
-                  <th scope="col" className="px-3 py-2 font-medium">When</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Who</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Action</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Entity</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Detail</th>
+                  <th scope="col" className={thClass}>When</th>
+                  <th scope="col" className={thClass}>Who</th>
+                  <th scope="col" className={thClass}>Action</th>
+                  <th scope="col" className={thClass}>Entity</th>
+                  <th scope="col" className={thClass}>Detail</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.map((e) => {
                   const dangerous = e.action === "transaction.void" || e.action === "month.reopen";
                   return (
-                    <tr key={e.id} className="border-t border-rule">
-                      <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
+                    <tr key={e.id} className={rowClass}>
+                      <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">
                         {e.at.slice(0, 16).replace("T", " ")}
                       </td>
-                      <td className="px-3 py-2 text-xs whitespace-nowrap">{e.userName ?? "—"}</td>
-                      <td className={cn("px-3 py-2 font-mono text-xs whitespace-nowrap", dangerous && "text-danger")}>
+                      <td className="px-3 py-2.5 text-xs whitespace-nowrap">{e.userName ?? "—"}</td>
+                      <td
+                        className={cn(
+                          "px-3 py-2.5 font-mono text-xs whitespace-nowrap",
+                          dangerous && "font-medium text-danger",
+                        )}
+                      >
                         {e.action}
                       </td>
-                      <td className="px-3 py-2 font-mono text-xs">
+                      <td className="px-3 py-2.5 font-mono text-xs">
                         {e.entity}
                         <span className="ml-1 text-muted">{e.entityId}</span>
                       </td>
-                      <td className="px-3 py-2 text-xs text-muted">{summarise(e.detail)}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted">{summarise(e.detail)}</td>
                     </tr>
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+            </TableWrap>
+          </Panel>
 
           <div className="flex items-center gap-2">
-            <Button variant="plain" onClick={() => setOffset((o) => Math.max(0, o - PAGE))} disabled={offset === 0}>
+            <Button variant="plain" size="md" onClick={() => setOffset((o) => Math.max(0, o - PAGE))} disabled={offset === 0}>
               ← Newer
             </Button>
             <Button
               variant="plain"
+              size="md"
               onClick={() => setOffset((o) => o + PAGE)}
               disabled={!data || offset + PAGE >= data.total}
             >

@@ -12,6 +12,7 @@
 // Nothing here touches the database, so the whole reader can be tested on a fixture.
 
 import ExcelJS from "exceljs";
+import { LEDGER_HEADERS } from "./export-ledger.ts";
 import { endOfMonth } from "./stock.ts";
 
 const MONTH_WORDS: Record<string, number> = {
@@ -259,7 +260,9 @@ export function buildItemLookup(items: WorkbookItem[]): ItemLookup {
 
 // ---------- the reader ----------
 
-const HEADERS = ["DATE", "ITEM ID", "BEGINNING BALANCE", "RECEIVED", "DISPENSED", "ENDING BALANCE", "EXPIRATION DATE"];
+// The format of one converted tab. Imported rather than repeated so the exporter in
+// src/lib/export-ledger.ts and this reader cannot drift apart.
+const HEADERS: readonly string[] = LEDGER_HEADERS;
 
 /**
  * Reads every tab the import needs. Throws when a long tab does not have the expected header,

@@ -9,10 +9,10 @@ import { ItemPicker } from "@/components/ItemPicker";
 import {
   Alert,
   Button,
-  Card,
   Field,
   Input,
   PageHeader,
+  Panel,
   Select,
   Textarea,
   txLabel,
@@ -102,21 +102,44 @@ export default function ReceivePage() {
         </Alert>
       ) : null}
 
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        {isAdmin ? (
-          <Field label="Entry type" htmlFor="type" className="max-w-xs">
-            <Select id="type" value={type} onChange={(e) => setType(e.target.value as "RECEIVE" | "OPENING")}>
-              <option value="RECEIVE">Received (adds to stock)</option>
-              <option value="OPENING">Opening balance (starting figure)</option>
-            </Select>
-          </Field>
-        ) : null}
+      <form onSubmit={submit} className="flex flex-col gap-5">
+        {/* Step 1: what is arriving. Step 2: the details. Numbered so the order is obvious. */}
+        <Panel
+          title="1. What is arriving?"
+          description="Search the catalogue, then pick the item."
+          className="max-w-2xl"
+        >
+          <div className="flex flex-col gap-4">
+            {isAdmin ? (
+              <Field label="Entry type" htmlFor="type" className="max-w-xs">
+                <Select id="type" value={type} onChange={(e) => setType(e.target.value as "RECEIVE" | "OPENING")}>
+                  <option value="RECEIVE">Received (adds to stock)</option>
+                  <option value="OPENING">Opening balance (starting figure)</option>
+                </Select>
+              </Field>
+            ) : null}
+            <ItemPicker value={item} onChange={setItem} />
+            {/* Once an item is chosen, the rest of the form makes sense. */}
+            {item ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-rule bg-surface-2 px-3.5 py-3 text-sm">
+                <span className="font-medium">{item.name}</span>
+                {item.variant ? <span className="text-muted">{item.variant}</span> : null}
+                <span className="font-mono text-xs text-muted">{item.id}</span>
+                <span className="ml-auto font-mono">
+                  On hand: <span className="font-semibold">{item.balance}</span>
+                  {item.unit ? <span className="text-muted"> {item.unit}</span> : null}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </Panel>
 
-        <div className="max-w-lg">
-          <ItemPicker value={item} onChange={setItem} />
-        </div>
-
-        <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
+        <Panel
+          title="2. How much, and when?"
+          description="Expiry decides which batch the stock joins."
+          className="max-w-2xl"
+        >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field
             label="Quantity"
             htmlFor="qty"
@@ -158,10 +181,11 @@ export default function ReceivePage() {
             <Input id="source" value={form.source} onChange={set("source")} />
           </Field>
 
-          <Field label="Remarks" htmlFor="remarks" className="sm:col-span-2">
+          <Field label="Remarks" htmlFor="remarks" className="sm:col-span-2" hint="Optional. Anything worth remembering later.">
             <Textarea id="remarks" value={form.remarks} onChange={set("remarks")} />
           </Field>
         </div>
+        </Panel>
 
         {monthClosed ? (
           <Alert tone="error">
@@ -170,29 +194,29 @@ export default function ReceivePage() {
         ) : null}
         {error ? <Alert tone="error">{error}</Alert> : null}
 
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" disabled={busy || !item || monthClosed}>
+        <div className="flex max-w-2xl flex-wrap items-center gap-3">
+          <Button type="submit" size="lg" disabled={busy || !item || monthClosed}>
             {busy ? "Saving…" : `Record ${txLabel(type).toLowerCase()}`}
           </Button>
-          <Button type="button" variant="plain" onClick={reset} disabled={busy}>
+          <Button type="button" variant="plain" size="lg" onClick={reset} disabled={busy}>
             Clear
           </Button>
+          {!item ? (
+            <span className="text-sm text-muted">Pick an item above to enable saving.</span>
+          ) : null}
         </div>
       </form>
 
-      <Card className="p-4 text-sm text-muted">
-        <p className="font-medium text-fg">How this works</p>
-        <ul className="mt-2 list-disc pl-5">
+      <Panel title="How this works" className="max-w-2xl">
+        <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted marker:text-rule">
           <li>
             The expiry decides the batch: stock with the same item and expiry joins the same batch, and an item only
             ever has one “unknown expiry” batch.
           </li>
-          <li>
-            Balances are recalculated from the entries, so nothing here can drift out of step.
-          </li>
+          <li>Balances are recalculated from the entries, so nothing here can drift out of step.</li>
           <li>Every save is written to the audit log with your name.</li>
         </ul>
-      </Card>
+      </Panel>
     </div>
   );
 }

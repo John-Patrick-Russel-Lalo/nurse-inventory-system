@@ -4,7 +4,22 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import type { ImportReportResponse } from "@/server/import-report";
-import { Alert, Card, EmptyState, ErrorNote, Loading, PageHeader, Stat } from "@/components/ui";
+import {
+  Alert,
+  Card,
+  EmptyState,
+  ErrorNote,
+  Loading,
+  PageHeader,
+  Panel,
+  Stat,
+  TableWrap,
+  cn,
+  linkClass,
+  rowClass,
+  thClass,
+  thRightClass,
+} from "@/components/ui";
 
 const sections = [
   "gaps",
@@ -67,7 +82,7 @@ function countOf(report: ImportReportResponse, key: SectionKey): number {
 
 function ItemLink({ id }: { id: string }) {
   return (
-    <Link href={`/items/${encodeURIComponent(id)}`} className="font-mono text-xs text-accent hover:underline">
+    <Link href={`/items/${encodeURIComponent(id)}`} className={linkClass}>
       {id}
     </Link>
   );
@@ -139,20 +154,28 @@ export default function ImportPage() {
       {HEADINGS.map(({ key, title, blurb, tone }) => {
         const count = countOf(data, key);
         return (
-          <section key={key} className="flex flex-col gap-2">
-            <div>
-              <h2 className="font-semibold">
-                {title}{" "}
-                <span className={tone === "plain" ? "text-muted" : tone === "danger" ? "text-danger" : "text-warn"}>
-                  ({count})
-                </span>
-              </h2>
-              <p className="max-w-prose text-sm text-muted">{blurb}</p>
-            </div>
-
-            {count === 0 ? (
-              <p className="text-sm text-ok">Nothing to do here.</p>
-            ) : key === "mismatches" ? (
+          <Panel
+            key={key}
+            title={title}
+            description={blurb}
+            actions={
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-sm font-medium",
+                  count === 0
+                    ? "bg-ok-soft text-ok"
+                    : tone === "danger"
+                      ? "bg-danger-soft text-danger"
+                      : tone === "warn"
+                        ? "bg-warn-soft text-warn"
+                        : "bg-surface-2 text-muted",
+                )}
+              >
+                {count === 0 ? "Nothing to do" : count}
+              </span>
+            }
+          >
+            {count === 0 ? null : key === "mismatches" ? (
               <MismatchTable rows={reconciliation.mismatches} />
             ) : key === "gaps" ? (
               <GapTable rows={data.gaps} />
@@ -163,35 +186,32 @@ export default function ImportPage() {
             ) : (
               <LateOpeningTable rows={data.lateOpenings} />
             )}
-          </section>
+          </Panel>
         );
       })}
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Months read ({data.months.length})</h2>
-        <div className="overflow-x-auto rounded-md border border-rule">
-          <table className="w-full border-collapse text-sm">
-            <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
-              <tr>
-                <th scope="col" className="px-3 py-2 font-medium">Tab</th>
-                <th scope="col" className="px-3 py-2 font-medium">Rows</th>
-                <th scope="col" className="px-3 py-2 font-medium">Covers</th>
+      <Panel title={`Months read (${data.months.length})`} description="One worksheet tab per month in the old workbook.">
+        <TableWrap>
+          <thead>
+            <tr>
+              <th scope="col" className={thClass}>Tab</th>
+              <th scope="col" className={thRightClass}>Rows</th>
+              <th scope="col" className={thClass}>Covers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.months.map((m) => (
+              <tr key={m.month} className={rowClass}>
+                <td className="px-3 py-2 text-xs">{m.sheet}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs">{m.rows.toLocaleString()}</td>
+                <td className="px-3 py-2 font-mono text-xs text-muted">
+                  {m.firstDate} to {m.lastDate}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {data.months.map((m) => (
-                <tr key={m.month} className="border-t border-rule">
-                  <td className="px-3 py-1.5 text-xs">{m.sheet}</td>
-                  <td className="px-3 py-1.5 font-mono text-xs">{m.rows.toLocaleString()}</td>
-                  <td className="px-3 py-1.5 font-mono text-xs text-muted">
-                    {m.firstDate} to {m.lastDate}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            ))}
+          </tbody>
+        </TableWrap>
+      </Panel>
 
       {data.sources.length ? (
         <Alert tone="info">
@@ -212,59 +232,55 @@ export default function ImportPage() {
 
 function MismatchTable({ rows }: { rows: { month: string; itemId: string; expected: number; rebuilt: number }[] }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-danger/40">
-      <table className="w-full border-collapse text-sm">
-        <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
-          <tr>
-            <th scope="col" className="px-3 py-2 font-medium">Month</th>
-            <th scope="col" className="px-3 py-2 font-medium">Item</th>
-            <th scope="col" className="px-3 py-2 font-medium">Workbook</th>
-            <th scope="col" className="px-3 py-2 font-medium">Rebuilt</th>
+    <TableWrap className="border-danger/40">
+      <thead>
+        <tr>
+          <th scope="col" className={thClass}>Month</th>
+          <th scope="col" className={thClass}>Item</th>
+          <th scope="col" className={thRightClass}>Workbook</th>
+          <th scope="col" className={thRightClass}>Rebuilt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={`${r.month}-${r.itemId}`} className={rowClass}>
+            <td className="px-3 py-2 font-mono text-xs">{r.month}</td>
+            <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
+            <td className="px-3 py-2 text-right font-mono text-xs">{r.expected}</td>
+            <td className="px-3 py-2 text-right font-mono text-xs font-medium text-danger">{r.rebuilt}</td>
           </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={`${r.month}-${r.itemId}`} className="border-t border-rule">
-              <td className="px-3 py-1.5 font-mono text-xs">{r.month}</td>
-              <td className="px-3 py-1.5"><ItemLink id={r.itemId} /></td>
-              <td className="px-3 py-1.5 font-mono text-xs">{r.expected}</td>
-              <td className="px-3 py-1.5 font-mono text-xs text-danger">{r.rebuilt}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </TableWrap>
   );
 }
 
 function GapTable({ rows }: { rows: ImportReportResponse["gaps"] }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-rule">
-      <table className="w-full border-collapse text-sm">
-        <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
-          <tr>
-            <th scope="col" className="px-3 py-2 font-medium">Item</th>
-            <th scope="col" className="px-3 py-2 font-medium">Date</th>
-            <th scope="col" className="px-3 py-2 font-medium">Was</th>
-            <th scope="col" className="px-3 py-2 font-medium">Became</th>
-            <th scope="col" className="px-3 py-2 font-medium">Adjustment</th>
+    <TableWrap>
+      <thead>
+        <tr>
+          <th scope="col" className={thClass}>Item</th>
+          <th scope="col" className={thClass}>Date</th>
+          <th scope="col" className={thRightClass}>Was</th>
+          <th scope="col" className={thRightClass}>Became</th>
+          <th scope="col" className={thRightClass}>Adjustment</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((g) => (
+          <tr key={`${g.itemId}-${g.date}`} className={rowClass}>
+            <td className="px-3 py-2"><ItemLink id={g.itemId} /></td>
+            <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{g.date}</td>
+            <td className="px-3 py-2 text-right font-mono text-xs text-muted">{g.from}</td>
+            <td className="px-3 py-2 text-right font-mono text-xs">{g.to}</td>
+            <td className="px-3 py-2 text-right font-mono text-xs font-medium text-warn">
+              {g.difference > 0 ? `+${g.difference}` : g.difference}
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {rows.map((g) => (
-            <tr key={`${g.itemId}-${g.date}`} className="border-t border-rule">
-              <td className="px-3 py-1.5"><ItemLink id={g.itemId} /></td>
-              <td className="px-3 py-1.5 font-mono text-xs whitespace-nowrap">{g.date}</td>
-              <td className="px-3 py-1.5 font-mono text-xs text-muted">{g.from}</td>
-              <td className="px-3 py-1.5 font-mono text-xs">{g.to}</td>
-              <td className="px-3 py-1.5 font-mono text-xs text-warn">
-                {g.difference > 0 ? `+${g.difference}` : g.difference}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </TableWrap>
   );
 }
 
@@ -272,79 +288,73 @@ function BatchTable({ rows, showExpiry }: { rows: ImportReportResponse["expired"
   const total = rows.reduce((s, r) => s + r.balance, 0);
   return (
     <>
-      <p className="text-sm text-muted">
+      <p className="mb-2 text-sm text-muted">
         {total.toLocaleString()} units across {rows.length} batches.
       </p>
-      <div className="overflow-x-auto rounded-md border border-rule">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
-            <tr>
-              <th scope="col" className="px-3 py-2 font-medium">Item</th>
-              {showExpiry ? <th scope="col" className="px-3 py-2 font-medium">Expiry</th> : null}
-              <th scope="col" className="px-3 py-2 font-medium">Units</th>
+      <TableWrap>
+        <thead>
+          <tr>
+            <th scope="col" className={thClass}>Item</th>
+            {showExpiry ? <th scope="col" className={thClass}>Expiry</th> : null}
+            <th scope="col" className={thRightClass}>Units</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={`${r.itemId}-${r.expiry ?? "none"}`} className={rowClass}>
+              <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
+              {showExpiry ? <td className="px-3 py-2 font-mono text-xs">{r.expiry}</td> : null}
+              <td className="px-3 py-2 text-right font-mono text-xs">{r.balance}</td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={`${r.itemId}-${r.expiry ?? "none"}`} className="border-t border-rule">
-                <td className="px-3 py-1.5"><ItemLink id={r.itemId} /></td>
-                {showExpiry ? <td className="px-3 py-1.5 font-mono text-xs">{r.expiry}</td> : null}
-                <td className="px-3 py-1.5 font-mono text-xs">{r.balance}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </TableWrap>
     </>
   );
 }
 
 function StoppedTable({ rows }: { rows: ImportReportResponse["stoppedRecording"] }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-rule">
-      <table className="w-full border-collapse text-sm">
-        <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
-          <tr>
-            <th scope="col" className="px-3 py-2 font-medium">Item</th>
-            <th scope="col" className="px-3 py-2 font-medium">Last recorded</th>
-            <th scope="col" className="px-3 py-2 font-medium">Frozen balance</th>
+    <TableWrap>
+      <thead>
+        <tr>
+          <th scope="col" className={thClass}>Item</th>
+          <th scope="col" className={thClass}>Last recorded</th>
+          <th scope="col" className={thRightClass}>Frozen balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.itemId} className={rowClass}>
+            <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
+            <td className="px-3 py-2 font-mono text-xs">{r.lastDate}</td>
+            <td className="px-3 py-2 text-right font-mono text-xs">{r.balance}</td>
           </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.itemId} className="border-t border-rule">
-              <td className="px-3 py-1.5"><ItemLink id={r.itemId} /></td>
-              <td className="px-3 py-1.5 font-mono text-xs">{r.lastDate}</td>
-              <td className="px-3 py-1.5 font-mono text-xs">{r.balance}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </TableWrap>
   );
 }
 
 function LateOpeningTable({ rows }: { rows: ImportReportResponse["lateOpenings"] }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-rule">
-      <table className="w-full border-collapse text-sm">
-        <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
-          <tr>
-            <th scope="col" className="px-3 py-2 font-medium">Item</th>
-            <th scope="col" className="px-3 py-2 font-medium">First seen</th>
-            <th scope="col" className="px-3 py-2 font-medium">Units</th>
+    <TableWrap>
+      <thead>
+        <tr>
+          <th scope="col" className={thClass}>Item</th>
+          <th scope="col" className={thClass}>First seen</th>
+          <th scope="col" className={thRightClass}>Units</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.itemId} className={rowClass}>
+            <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
+            <td className="px-3 py-2 font-mono text-xs">{r.date}</td>
+            <td className="px-3 py-2 text-right font-mono text-xs">{r.qty}</td>
           </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.itemId} className="border-t border-rule">
-              <td className="px-3 py-1.5"><ItemLink id={r.itemId} /></td>
-              <td className="px-3 py-1.5 font-mono text-xs">{r.date}</td>
-              <td className="px-3 py-1.5 font-mono text-xs">{r.qty}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </TableWrap>
   );
 }
