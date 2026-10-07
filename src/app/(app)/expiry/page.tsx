@@ -6,20 +6,25 @@ import type { ExpiryRow } from "@/lib/api-types";
 import { useApi } from "@/lib/use-api";
 import { usePermissions } from "@/components/SessionProvider";
 import {
-  Card,
+  Button,
   EmptyState,
   ErrorNote,
   ExpiryBadge,
   Loading,
   PageHeader,
+  Panel,
   Stat,
-  cn,
+  TableWrap,
+  linkClass,
+  rowClass,
+  thClass,
+  thRightClass,
 } from "@/components/ui";
 
 const BUCKETS = [
-  { key: "DAYS_30", title: "Within 30 days", tone: "bg-danger-soft" },
-  { key: "DAYS_60", title: "31 to 60 days", tone: "bg-warn-soft" },
-  { key: "DAYS_90", title: "61 to 90 days", tone: "bg-warn-soft" },
+  { key: "DAYS_30", title: "Within 30 days", hint: "Use these first, or set them aside." },
+  { key: "DAYS_60", title: "31 to 60 days", hint: "Worth moving onto the front of the shelf." },
+  { key: "DAYS_90", title: "61 to 90 days", hint: "Plan an order or a rotation." },
 ] as const;
 
 export default function ExpiryPage() {
@@ -37,108 +42,107 @@ export default function ExpiryPage() {
     data.buckets.DAYS_90.reduce((s, r) => s + r.balance, 0);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Expiry report"
-        description={`Batches still holding stock, by how soon they expire. Measured from ${data.today}.`}
+        description={`Every batch still holding stock, grouped by how soon it runs out. Days are counted from ${data.today}.`}
         actions={
-          <button
-            type="button"
-            onClick={reload}
-            className="text-sm text-muted underline underline-offset-2 hover:text-fg"
-          >
+          <Button variant="plain" size="md" onClick={reload} disabled={refreshing}>
             {refreshing ? "Refreshing…" : "Refresh"}
-          </button>
+          </Button>
         }
       />
 
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <Stat label="Expired batches" value={data.expired.length} tone={data.expired.length ? "danger" : "plain"} />
-        <Stat label="Expiring ≤90d" value={soon} tone={soon ? "warn" : "plain"} />
-        <Stat label="Units ≤90d" value={soonUnits} tone={soon ? "warn" : "plain"} />
+      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Stat
+          label="Already expired"
+          value={data.expired.length}
+          tone={data.expired.length ? "danger" : "plain"}
+          hint="On the shelf, past its date"
+        />
+        <Stat label="Expiring within 90 days" value={soon} tone={soon ? "warn" : "plain"} hint="Batches to plan around" />
+        <Stat label="Units affected" value={soonUnits} tone={soon ? "warn" : "plain"} hint="Across those batches" />
       </dl>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Expired, still on the shelf</h2>
+      <Panel
+        title="Expired, still on the shelf"
+        description="These cannot be dispensed. Remove them and record a Dispose entry once they leave."
+      >
         {data.expired.length === 0 ? (
-          <EmptyState title="Nothing expired." hint={`Every batch with stock expires after ${today} or has no expiry recorded.`} />
+          <EmptyState
+            title="Nothing has expired."
+            hint={`Every batch holding stock expires after ${today}, or has no expiry date recorded.`}
+          />
         ) : (
-          <>
-            <BatchTable rows={data.expired} />
-            <p className="text-sm text-muted">
-              Expired stock is skipped by Dispense. Set it aside and record a Dispose entry once it is gone.
-            </p>
-          </>
+          <BatchTable rows={data.expired} />
         )}
-      </section>
+      </Panel>
 
-      {BUCKETS.map(({ key, title, tone }) => (
-        <section key={key} className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">
-            {title}{" "}
-            <span className="text-sm font-normal text-muted">
-              ({data.buckets[key].length} {data.buckets[key].length === 1 ? "batch" : "batches"})
+      {BUCKETS.map(({ key, title, hint }) => (
+        <Panel
+          key={key}
+          title={title}
+          description={hint}
+          actions={
+            <span className="text-sm text-muted">
+              {data.buckets[key].length} {data.buckets[key].length === 1 ? "batch" : "batches"}
             </span>
-          </h2>
+          }
+        >
           {data.buckets[key].length === 0 ? (
             <EmptyState title="Nothing in this window." />
           ) : (
-            <div className={cn("overflow-hidden rounded-md border border-rule", tone)}>
-              <BatchTable rows={data.buckets[key]} />
-            </div>
+            <BatchTable rows={data.buckets[key]} />
           )}
-        </section>
+        </Panel>
       ))}
 
-      <Card className="p-4 text-sm text-muted">
-        <p className="font-medium text-fg">About the dates</p>
-        <ul className="mt-2 list-disc pl-5">
-          <li>Only the month is kept, so an expiry is stored as the last day of that month.</li>
-          <li>A batch expiring today is still usable today; it is expired from tomorrow.</li>
-          <li>Batches with no expiry recorded are never listed here, and are used last when dispensing.</li>
+      <Panel title="How the dates work" description="Worth knowing before you query the report.">
+        <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted marker:text-rule">
+          <li>Only the month is recorded, so an expiry date is stored as the last day of that month.</li>
+          <li>A batch is usable on its expiry date and counts as expired from the next day.</li>
+          <li>Batches with no expiry date are left out of this report, and are the last ones used when dispensing.</li>
         </ul>
-      </Card>
+      </Panel>
     </div>
   );
 }
 
 function BatchTable({ rows }: { rows: ExpiryRow[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse bg-surface text-sm">
-        <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
-          <tr>
-            <th scope="col" className="px-3 py-2 font-medium">Item</th>
-            <th scope="col" className="px-3 py-2 font-medium">Expiry</th>
-            <th scope="col" className="px-3 py-2 font-medium">Days left</th>
-            <th scope="col" className="px-3 py-2 font-medium">Status</th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">On hand</th>
+    <TableWrap>
+      <thead>
+        <tr>
+          <th scope="col" className={thClass}>Item and batch</th>
+          <th scope="col" className={thClass}>Expiry</th>
+          <th scope="col" className={thRightClass}>Days left</th>
+          <th scope="col" className={thClass}>Status</th>
+          <th scope="col" className={thRightClass}>On hand</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.batchId} className={rowClass}>
+            <td className="px-3 py-2.5">
+              <Link href={`/items/${r.itemId}`} className={linkClass}>
+                {r.itemName}
+              </Link>
+              {r.variant ? <span className="text-muted"> · {r.variant}</span> : null}
+              <span className="ml-2 font-mono text-xs text-muted">
+                #{r.batchId}
+                {r.batchLabel ? ` ${r.batchLabel}` : ""}
+              </span>
+            </td>
+            <td className="px-3 py-2.5 font-mono text-sm whitespace-nowrap">{r.expiry}</td>
+            <td className="px-3 py-2.5 text-right font-mono">{r.daysToExpiry}</td>
+            <td className="px-3 py-2.5"><ExpiryBadge status={r.status} /></td>
+            <td className="px-3 py-2.5 text-right font-mono font-medium">
+              {r.balance}
+              {r.unit ? <span className="text-muted"> {r.unit}</span> : null}
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={`${r.batchId}`} className="border-t border-rule">
-              <td className="px-3 py-2">
-                <Link href={`/items/${r.itemId}`} className="underline underline-offset-2">
-                  {r.itemName}
-                </Link>
-                {r.variant ? <span className="text-muted"> · {r.variant}</span> : null}
-                <span className="ml-2 font-mono text-xs text-muted">
-                  #{r.batchId}
-                  {r.batchLabel ? ` ${r.batchLabel}` : ""}
-                </span>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{r.expiry}</td>
-              <td className="px-3 py-2 font-mono">{r.daysToExpiry}</td>
-              <td className="px-3 py-2"><ExpiryBadge status={r.status} /></td>
-              <td className="px-3 py-2 text-right font-mono">
-                {r.balance}
-                {r.unit ? <span className="text-muted"> {r.unit}</span> : null}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </TableWrap>
   );
 }

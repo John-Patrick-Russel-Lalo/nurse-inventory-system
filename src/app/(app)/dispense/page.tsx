@@ -9,13 +9,17 @@ import { ItemPicker } from "@/components/ItemPicker";
 import {
   Alert,
   Button,
-  Card,
   Field,
   Input,
   PageHeader,
+  Panel,
   Select,
+  TableWrap,
   Textarea,
   cn,
+  rowClass,
+  thClass,
+  thRightClass,
   txLabel,
 } from "@/components/ui";
 
@@ -194,7 +198,13 @@ export default function DispensePage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Dispense and correct" description={tab.blurb} />
 
-      <div className="flex flex-wrap gap-1 border-b border-rule" role="tablist" aria-label="Entry type">
+      {/* Segmented control rather than underline tabs: each option does something different, so they
+          read as three equal choices. The active one is the only filled thing. */}
+      <div
+        className="flex flex-wrap gap-1.5 rounded-2xl border border-rule bg-surface p-1.5 shadow-card"
+        role="tablist"
+        aria-label="Entry type"
+      >
         {TABS.map((t) => (
           <button
             key={t.kind}
@@ -207,16 +217,17 @@ export default function DispensePage() {
               setResult(undefined);
             }}
             className={cn(
-              "-mb-px rounded-t-md border-b-2 px-3 py-2 text-sm font-medium",
+              "cursor-pointer flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.99]",
               kind === t.kind
-                ? "border-accent text-accent"
-                : "border-transparent text-muted hover:text-fg",
+                ? "bg-accent-soft font-semibold text-accent shadow-raised"
+                : "text-muted hover:bg-surface-2 hover:text-fg",
             )}
           >
             {t.label}
           </button>
         ))}
       </div>
+      <p className="-mt-3 text-sm text-muted">{tab.blurb}</p>
 
       {result ? (
         <Alert tone="success">
@@ -228,12 +239,34 @@ export default function DispensePage() {
         </Alert>
       ) : null}
 
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        <div className="max-w-lg">
-          <ItemPicker value={item} onChange={setItem} />
-        </div>
+      <form onSubmit={submit} className="flex flex-col gap-5">
+        <Panel title="1. Which item?" description="Search the catalogue, then pick the item." className="max-w-2xl">
+          <div className="flex flex-col gap-3">
+            <ItemPicker value={item} onChange={setItem} />
+            {item ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-rule bg-surface-2 px-3.5 py-3 text-sm">
+                <span className="font-medium">{item.name}</span>
+                {item.variant ? <span className="text-muted">{item.variant}</span> : null}
+                <span className="font-mono text-xs text-muted">{item.id}</span>
+                <span className="ml-auto font-mono">
+                  On hand: <span className="font-semibold">{item.balance}</span>
+                  {item.unit ? <span className="text-muted"> {item.unit}</span> : null}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </Panel>
 
         {item ? (
+          <Panel
+            title={kind === "ADJUST" ? "2. Which batch, and by how much?" : "2. How much, and when?"}
+            description={
+              kind === "ADJUST"
+                ? "Correct a single batch to match a counted figure."
+                : "The earliest expiry is used first. Adjust the split if that is not what you want."
+            }
+            className="max-w-2xl"
+          >
           <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
             {kind === "ADJUST" ? (
               <>
@@ -291,51 +324,59 @@ export default function DispensePage() {
               <Input id="source" value={source} onChange={(e) => setSource(e.target.value)} />
             </Field>
 
-            <Field label="Remarks" htmlFor="remarks">
+            <Field label="Remarks" htmlFor="remarks" hint="Optional. A reason here makes the audit log easier to read later.">
               <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
             </Field>
           </div>
+          </Panel>
         ) : null}
 
         {kind !== "ADJUST" && item && amount > 0 && usable.length > 0 ? (
-          <Card className="max-w-3xl p-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-sm font-semibold">Batches</h2>
-              {isSplit && edited ? (
-                <button
+          <Panel
+            title="3. Which batches?"
+            description={
+              isSplit
+                ? "This quantity spans more than one batch. Check the split before saving."
+                : "One batch covers this quantity, so there is nothing to choose."
+            }
+            className="max-w-3xl"
+            actions={
+              isSplit && edited ? (
+                <Button
                   type="button"
+                  variant="plain"
+                  size="sm"
                   onClick={() => {
                     setEdited(false);
                     setLines(undefined);
                   }}
-                  className="text-xs text-muted underline underline-offset-2 hover:text-fg"
                 >
                   Back to earliest expiry first
-                </button>
-              ) : null}
-            </div>
-
+                </Button>
+              ) : undefined
+            }
+          >
             {lines ? (
               <>
-                <table className="mt-2 w-full border-collapse text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wider text-muted">
+                <TableWrap className="shadow-none">
+                  <thead>
                     <tr>
-                      <th scope="col" className="py-1 font-medium">Batch</th>
-                      <th scope="col" className="py-1 font-medium">Expiry</th>
-                      <th scope="col" className="py-1 text-right font-medium">On hand</th>
-                      <th scope="col" className="py-1 text-right font-medium">Taking</th>
+                      <th scope="col" className={thClass}>Batch</th>
+                      <th scope="col" className={thClass}>Expiry</th>
+                      <th scope="col" className={thRightClass}>On hand</th>
+                      <th scope="col" className={thRightClass}>Taking</th>
                     </tr>
                   </thead>
                   <tbody>
                     {lines.map((line) => (
-                      <tr key={line.batchId} className="border-t border-rule">
-                        <td className="py-1.5 font-mono text-xs">
+                      <tr key={line.batchId} className={rowClass}>
+                        <td className="px-3 py-2 font-mono text-xs">
                           #{line.batchId}
                           {line.label ? <span className="ml-1 text-muted">{line.label}</span> : null}
                         </td>
-                        <td className="py-1.5 font-mono text-xs">{line.expiry ?? "no expiry"}</td>
-                        <td className="py-1.5 text-right font-mono text-muted">{line.balance}</td>
-                        <td className="py-1.5 text-right">
+                        <td className="px-3 py-2 font-mono text-xs">{line.expiry ?? "no expiry"}</td>
+                        <td className="px-3 py-2 text-right font-mono text-muted">{line.balance}</td>
+                        <td className="px-3 py-2 text-right">
                           <Input
                             type="number"
                             min={0}
@@ -360,13 +401,13 @@ export default function DispensePage() {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t border-rule">
-                      <td className="py-1.5 text-xs text-muted" colSpan={3}>
+                    <tr className="border-t border-rule bg-surface-2">
+                      <td className="px-3 py-2 text-xs text-muted" colSpan={3}>
                         {edited ? "Your split" : "Earliest expiry first"}
                       </td>
                       <td
                         className={cn(
-                          "py-1.5 text-right font-mono",
+                          "px-3 py-2 text-right font-mono font-semibold",
                           edited && lineTotal !== amount ? "text-danger" : "",
                         )}
                       >
@@ -374,17 +415,17 @@ export default function DispensePage() {
                       </td>
                     </tr>
                   </tfoot>
-                </table>
+                </TableWrap>
                 {edited && lineTotal !== amount ? (
-                  <p className="mt-2 text-sm text-danger">
+                  <Alert tone="error" className="mt-3">
                     The batch quantities must add up to {amount} before this can be saved.
-                  </p>
+                  </Alert>
                 ) : null}
               </>
             ) : (
-              <p className="mt-2 text-sm text-muted">Working out the batches…</p>
+              <p className="text-sm text-muted">Working out the batches…</p>
             )}
-          </Card>
+          </Panel>
         ) : null}
 
         {expiredBatches.length > 0 && kind !== "ADJUST" ? (
@@ -401,28 +442,29 @@ export default function DispensePage() {
         ) : null}
         {error ? <Alert tone="error">{error}</Alert> : null}
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex max-w-2xl flex-wrap items-center gap-3">
           <Button
             type="submit"
+            size="lg"
             disabled={busy || !item || monthClosed || (kind !== "ADJUST" && edited && lineTotal !== amount)}
           >
             {busy ? "Saving…" : `Record ${txLabel(kind).toLowerCase()}`}
           </Button>
-          <Button type="button" variant="plain" onClick={reset} disabled={busy}>
+          <Button type="button" variant="plain" size="lg" onClick={reset} disabled={busy}>
             Clear
           </Button>
+          {!item ? <span className="text-sm text-muted">Pick an item above to enable saving.</span> : null}
         </div>
       </form>
 
-      <Card className="p-4 text-sm text-muted">
-        <p className="font-medium text-fg">The rules behind this</p>
-        <ul className="mt-2 list-disc pl-5">
+      <Panel title="The rules behind this" className="max-w-2xl">
+        <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted marker:text-rule">
           <li>Dispense takes the batch with the earliest expiry first, and splits across batches only when it must.</li>
           <li>Expired and empty batches are never offered.</li>
           <li>One entry can span several batches; each split becomes its own row so the history stays readable.</li>
           <li>No change may push a batch below zero, so two people cannot take the last unit at the same time.</li>
         </ul>
-      </Card>
+      </Panel>
     </div>
   );
 }

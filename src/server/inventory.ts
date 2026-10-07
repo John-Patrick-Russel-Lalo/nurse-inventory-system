@@ -33,7 +33,7 @@ import {
   type Ctx,
   NURSE_BACKDATE_DAYS,
 } from "./context";
-import { fromDbDate, toDbDate } from "@/lib/dates";
+import { fromDbDate, lastDayOfMonth, lastMonths, monthOf, monthsBetween, today, toDbDate } from "@/lib/dates";
 import { ApiError } from "./http";
 
 // ---------- retry ----------
@@ -212,7 +212,10 @@ export async function getItem(ctx: Ctx, id: string): Promise<ItemDetail> {
   const balances = await balancesByBatch(db, batches.map((b) => b.id));
   const views = batches.map((b) => toBatchView(b, balances.get(b.id) ?? 0, ctx.today));
   const summary = summarise(item, views, ctx.today);
-  const { transactions } = await listTransactions(ctx, { itemId: id, limit: 100 });
+  const [{ transactions }, series] = await Promise.all([
+    listTransactions(ctx, { itemId: id, limit: 100 }),
+    itemSeries(id, monthOf(ctx.today)),
+  ]);
 
   return {
     item: plainItem(summary),
@@ -220,6 +223,8 @@ export async function getItem(ctx: Ctx, id: string): Promise<ItemDetail> {
     lowStock: summary.lowStock,
     batches: views,
     transactions,
+    monthly: series.monthly,
+    balances: series.balances,
   };
 }
 
@@ -531,6 +536,131 @@ export async function voidTransaction(ctx: Ctx, id: number, reason: string): Pro
   return view;
 }
 
+// ---------- usage over time ----------
+
+export interface MonthUsage {
+  month: string;
+  received: number;
+  dispensed: number;
+}
+
+export interface MonthBalance {
+  month: string;
+  balance: number;
+}
+
+/**
+ * Sums signed entries into one bucket per month, oldest first, with the quiet months present as
+ * zeros so a chart shows a dip rather than a gap.
+ *
+ * The split is the same one the Excel export uses: an entry is a receipt or an issue by the
+ * direction it moved the stock, so OPENING and a positive ADJUST count as received and DISPOSE
+ * and a negative ADJUST count as dispensed. Anything that way, "received minus dispensed" is
+ * always the change in stock, which is what makes a usage chart mean anything.
+ */
+function bucketByMonth(
+  entries: readonly { date: string; qty: number }[],
+  first: string,
+  last: string,
+): MonthUsage[] {
+  const months = monthsBetween(first.slice(0, 7), last.slice(0, 7));
+  const buckets = months.map((month) => ({ month, received: 0, dispensed: 0 }));
+  const byMonth = new Map(buckets.map((b) => [b.month, b]));
+  for (const entry of entries) {
+    const bucket = byMonth.get(entry.date.slice(0, 7));
+    if (!bucket) continue;
+    if (entry.qty > 0) bucket.received += entry.qty;
+    else if (entry.qty < 0) bucket.dispensed -= entry.qty;
+  }
+  return buckets;
+}
+
+/** Received and dispensed per month across the whole office. */
+export async function monthlyUsage(from: string, to: string): Promise<MonthUsage[]> {
+  const rows = await db.transaction.findMany({
+    where: { date: { gte: toDbDate(from), lte: toDbDate(to) }, voidedAt: null },
+    orderBy: [{ date: "asc" }, { id: "asc" }],
+    select: { date: true, qty: true },
+  });
+  return bucketByMonth(
+    rows.map((r) => ({ date: fromDbDate(r.date)!, qty: r.qty })),
+    from,
+    to,
+  );
+}
+
+/** What the office used most this month, for the dashboard's usage chart. */
+export async function topDispensed(month: string, limit = 8): Promise<{ itemId: string; itemName: string; dispensed: number }[]> {
+  const rows = await db.transaction.groupBy({
+    by: ["itemId"],
+    where: {
+      date: { gte: toDbDate(`${month}-01`), lte: toDbDate(lastDayOfMonth(month)) },
+      type: "DISPENSE",
+      voidedAt: null,
+    },
+    // Dispenses are stored negative, so the most negative sum is the most used.
+    orderBy: { _sum: { qty: "asc" } },
+    take: limit,
+    _sum: { qty: true },
+  });
+  if (rows.length === 0) return [];
+
+  const names = await db.item.findMany({
+    where: { id: { in: rows.map((r) => r.itemId) } },
+    select: { id: true, name: true, variant: true },
+  });
+  const nameById = new Map(names.map((n) => [n.id, n.variant ? `${n.name} ${n.variant}` : n.name]));
+  return rows.map((r) => ({
+    itemId: r.itemId,
+    itemName: nameById.get(r.itemId) ?? r.itemId,
+    dispensed: Math.abs(r._sum.qty ?? 0),
+  }));
+}
+
+/** One item's monthly usage, and its balance at each month end, over its whole life. */
+// The series runs from the item's first entry to the month in progress, not just to its last entry,
+// so the chart always ends at today's balance. Months with no entries carry the previous balance
+// forward, which is also what stops a one-month item drawing a line with nothing on it.
+export async function itemSeries(
+  itemId: string,
+  through = monthOf(today()),
+): Promise<{ monthly: MonthUsage[]; balances: MonthBalance[] }> {
+  const rows = await db.transaction.findMany({
+    where: { itemId, voidedAt: null },
+    orderBy: [{ date: "asc" }, { id: "asc" }],
+    select: { date: true, qty: true },
+  });
+  if (rows.length === 0) return { monthly: [], balances: [] };
+
+  const entries = rows.map((r) => ({ date: fromDbDate(r.date)!, qty: r.qty }));
+  const monthly: MonthUsage[] = monthsBetween(monthOf(entries[0].date), through).map((month) => ({
+    month,
+    received: 0,
+    dispensed: 0,
+  }));
+  const byMonth = new Map(monthly.map((m) => [m.month, m]));
+  for (const entry of entries) {
+    const bucket = byMonth.get(monthOf(entry.date));
+    if (!bucket) continue;
+    if (entry.qty > 0) bucket.received += entry.qty;
+    else bucket.dispensed += -entry.qty;
+  }
+
+  // Entries and months are both in order, so one pass is enough.
+  const balances: MonthBalance[] = [];
+  let balance = 0;
+  let cursor = 0;
+  for (const m of monthly) {
+    while (cursor < entries.length && monthOf(entries[cursor].date) <= m.month) {
+      balance += entries[cursor].qty;
+      cursor++;
+    }
+    balances.push({ month: m.month, balance });
+  }
+
+  return { monthly, balances };
+}
+
 // ---------- dashboard ----------
 
 export async function dashboard(ctx: Ctx): Promise<DashboardData> {
@@ -550,16 +680,15 @@ export async function dashboard(ctx: Ctx): Promise<DashboardData> {
     )
     .sort((a, b) => a.daysLeft - b.daysLeft);
 
-  const monthStart = `${ctx.today.slice(0, 7)}-01`;
-  const byType = await db.transaction.groupBy({
-    by: ["type"],
-    where: { date: { gte: toDbDate(monthStart) }, voidedAt: null },
-    _sum: { qty: true },
-  });
-  const received = byType.find((r) => r.type === "RECEIVE")?._sum.qty ?? 0;
-  const dispensed = Math.abs(byType.find((r) => r.type === "DISPENSE")?._sum.qty ?? 0);
-
-  const { transactions } = await listTransactions(ctx, { limit: 12 });
+  // A year of months, so the trend chart shows how usage has moved. Anything older is a line
+  // away in the export.
+  const current = monthOf(ctx.today);
+  const from = `${lastMonths(current, 12)[0]}-01`;
+  const [monthly, topUsed, { transactions }] = await Promise.all([
+    monthlyUsage(from, ctx.today),
+    topDispensed(current),
+    listTransactions(ctx, { limit: 12 }),
+  ]);
 
   return {
     itemCount: report.total.items,
@@ -572,7 +701,8 @@ export async function dashboard(ctx: Ctx): Promise<DashboardData> {
     expired: report.rows
       .filter((r) => r.item.expiredQty > 0)
       .map((r) => ({ itemId: r.item.id, itemName: r.item.name, balance: r.item.expiredQty })),
-    monthTotals: [{ month: ctx.today.slice(0, 7), received, dispensed }],
+    monthTotals: monthly,
+    topUsed,
     recent: transactions,
   };
 }

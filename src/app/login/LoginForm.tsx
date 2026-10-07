@@ -2,45 +2,36 @@
 
 import { useActionState } from "react";
 import { login, type LoginState } from "./actions";
+import { Alert, Button, Field, Input } from "@/components/ui";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
   return (
     <form action={action} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm font-medium" htmlFor="email">
-        Email
-        <input
+      <Field label="Email" htmlFor="email">
+        <Input
           id="email"
           name="email"
           type="email"
           autoComplete="username"
           required
-          className="rounded-md border border-rule bg-bg px-3 py-2 text-base font-normal"
+          autoFocus
+          placeholder="you@office.gov"
         />
-      </label>
-      <label className="flex flex-col gap-1 text-sm font-medium" htmlFor="password">
-        Password
-        <input
+      </Field>
+      <Field label="Password" htmlFor="password">
+        <Input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
           required
-          className="rounded-md border border-rule bg-bg px-3 py-2 text-base font-normal"
         />
-      </label>
-      {state.error ? (
-        <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">
-          {state.error}
-        </p>
-      ) : null}
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-accent px-4 py-2 font-medium text-accent-fg disabled:opacity-60"
-      >
+      </Field>
+      {state.error ? <Alert tone="error">{state.error}</Alert> : null}
+      <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full justify-center">
         {pending ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
     </form>
   );
 }

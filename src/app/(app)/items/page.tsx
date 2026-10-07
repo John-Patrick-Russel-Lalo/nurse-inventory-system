@@ -9,6 +9,7 @@ import { usePermissions } from "@/components/SessionProvider";
 import {
   Alert,
   Button,
+  Card,
   Checkbox,
   EmptyState,
   ErrorNote,
@@ -17,9 +18,16 @@ import {
   Loading,
   LowBadge,
   PageHeader,
+  Panel,
+  SearchInput,
   Select,
   Stat,
+  TableWrap,
   cn,
+  linkClass,
+  rowClass,
+  thClass,
+  thRightClass,
 } from "@/components/ui";
 
 export default function ItemsPage() {
@@ -54,24 +62,35 @@ export default function ItemsPage() {
         }
       />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex min-w-56 flex-1 flex-col gap-1 text-sm font-medium">
-          Search
-          <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, brand or ID…" />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Category
-          <Select value={category} onChange={(e) => setCategory(e.target.value)} className="w-44">
-            <option value="ALL">All</option>
+      {/* Filters grouped in one card so they read as a single set of controls. */}
+      <Card className="flex flex-wrap items-end gap-4 p-4">
+        <div className="flex min-w-56 flex-1 flex-col gap-1.5">
+          <label htmlFor="items-q" className="text-sm font-medium">Search</label>
+          <SearchInput
+            id="items-q"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Name, brand or ID…"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="items-category" className="text-sm font-medium">Category</label>
+          <Select
+            id="items-category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-44"
+          >
+            <option value="ALL">All categories</option>
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {c.charAt(0) + c.slice(1).toLowerCase()}
               </option>
             ))}
           </Select>
-        </label>
+        </div>
         {isAdmin ? (
-          <div className="pb-2">
+          <div className="flex h-[38px] items-center pb-0.5">
             <Checkbox
               label="Show inactive"
               checked={includeInactive}
@@ -79,7 +98,7 @@ export default function ItemsPage() {
             />
           </div>
         ) : null}
-      </div>
+      </Card>
 
       {data ? (
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -94,49 +113,59 @@ export default function ItemsPage() {
       {error ? <ErrorNote error={new Error(error)} /> : null}
       {refreshing ? <p className="text-xs text-muted">Refreshing…</p> : null}
 
-      {data && rows.length === 0 ? <EmptyState title="No items match." /> : null}
-
-      {rows.length > 0 ? (
-        <div className="overflow-x-auto rounded-md border border-rule">
-          <table className="w-full border-collapse text-sm">
-            <thead className="bg-bg text-left text-xs uppercase tracking-wider text-muted">
+      <Panel
+        title={category === "ALL" ? "All items" : category.charAt(0) + category.slice(1).toLowerCase()}
+        description={q ? `Matching “${q}”` : undefined}
+        actions={refreshing ? <span className="text-sm text-muted">Refreshing…</span> : undefined}
+      >
+        {rows.length === 0 ? (
+          <EmptyState
+            title="No items match."
+            hint={isAdmin ? "Try a different search, widen the category, or add the item yourself." : "Try a different search or widen the category."}
+            action={isAdmin ? <Button onClick={() => setCreating(true)}>Add item</Button> : undefined}
+          />
+        ) : (
+          <TableWrap className={cn(refreshing && "opacity-60")}>
+            <thead>
               <tr>
-                <th scope="col" className="px-3 py-2 font-medium">ID</th>
-                <th scope="col" className="px-3 py-2 font-medium">Item</th>
-                <th scope="col" className="px-3 py-2 font-medium">Category</th>
-                <th scope="col" className="px-3 py-2 font-medium">Unit</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">Reorder at</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">On hand</th>
+                <th scope="col" className={thClass}>ID</th>
+                <th scope="col" className={thClass}>Item</th>
+                <th scope="col" className={thClass}>Category</th>
+                <th scope="col" className={thClass}>Unit</th>
+                <th scope="col" className={thRightClass}>Reorder at</th>
+                <th scope="col" className={thRightClass}>On hand</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((item) => (
-                <tr key={item.id} className={cn("border-t border-rule", !item.active && "opacity-55")}>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    <Link href={`/items/${item.id}`} className="underline underline-offset-2">
+                <tr key={item.id} className={cn(rowClass, !item.active && "opacity-60")}>
+                  <td className="px-3 py-2.5">
+                    <Link href={`/items/${item.id}`} className={cn(linkClass, "font-mono text-xs")}>
                       {item.id}
                     </Link>
                   </td>
-                  <td className="px-3 py-2">
-                    {item.name}
+                  <td className="px-3 py-2.5">
+                    <Link href={`/items/${item.id}`} className={linkClass}>
+                      {item.name}
+                    </Link>
                     {item.variant ? <span className="text-muted"> · {item.variant}</span> : null}
                     {!item.active ? <span className="ml-2 text-xs text-muted">(inactive)</span> : null}
                   </td>
-                  <td className="px-3 py-2 text-xs text-muted">{item.category}</td>
-                  <td className={cn("px-3 py-2 text-xs", !item.unit && "text-warn")}>{item.unit ?? "—"}</td>
-                  <td className={cn("px-3 py-2 text-right font-mono text-xs", item.reorderLevel === null && "text-warn")}>
+                  <td className="px-3 py-2.5 text-xs text-muted">{item.category}</td>
+                  <td className={cn("px-3 py-2.5 text-xs", !item.unit && "text-warn")}>{item.unit ?? "—"}</td>
+                  <td className={cn("px-3 py-2.5 text-right font-mono text-xs", item.reorderLevel === null && "text-warn")}>
                     {item.reorderLevel ?? "—"}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono">
+                  <td className="px-3 py-2.5 text-right font-mono font-medium">
                     {item.balance}
                     {item.lowStock ? <LowBadge /> : null}
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      ) : null}
+          </TableWrap>
+        )}
+      </Panel>
 
       {creating ? <NewItemDialog onClose={() => setCreating(false)} onSaved={reload} /> : null}
     </div>
@@ -167,14 +196,14 @@ function NewItemDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <form onSubmit={submit} className="w-full max-w-md rounded-md border border-rule bg-surface p-5 shadow-xl">
-        <h2 className="text-lg font-semibold">Add an item</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" aria-labelledby="new-item-title">
+      <form onSubmit={submit} className="w-full max-w-md rounded-2xl border border-rule bg-surface p-6 shadow-float">
+        <h2 id="new-item-title" className="text-lg font-semibold">Add an item</h2>
         <p className="mt-1 text-sm text-muted">
           Leave the ID empty to continue after the highest one in the same block.
         </p>
 
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="mt-5 flex flex-col gap-3.5">
           <Field label="Name" htmlFor="new-name">
             <Input
               id="new-name"
@@ -223,11 +252,11 @@ function NewItemDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
 
           {error ? <Alert tone="error">{error}</Alert> : null}
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="plain" onClick={onClose} disabled={busy}>
+          <div className="mt-1 flex justify-end gap-2">
+            <Button type="button" variant="plain" size="md" onClick={onClose} disabled={busy}>
               Cancel
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" size="md" disabled={busy}>
               {busy ? "Saving…" : "Add item"}
             </Button>
           </div>
