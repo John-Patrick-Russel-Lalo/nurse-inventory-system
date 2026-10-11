@@ -111,6 +111,16 @@ export function IconAudit({ className }: IconProps) {
   );
 }
 
+export function IconHelp({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className={cn(iconBox, className)} aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.3a2.5 2.5 0 0 1 4.7 1c0 1.7-2.2 2-2.2 3.4" />
+      <path d="M12 16.8h.01" />
+    </svg>
+  );
+}
+
 export function IconDownload({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={cn("size-4 shrink-0", className)} aria-hidden>

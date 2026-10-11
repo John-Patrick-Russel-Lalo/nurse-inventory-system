@@ -1,13 +1,50 @@
 "use client";
 
-import { useActionState } from "react";
-import { login, type LoginState } from "./actions";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { rememberCredential, verifyOffline } from "@/lib/offline";
 import { Alert, Button, Field, Input } from "@/components/ui";
 
 export function LoginForm() {
-  const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
+  const router = useRouter();
+  const [error, setError] = useState<string>();
+  const [pending, setPending] = useState(false);
+
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "");
+    const password = String(form.get("password") ?? "");
+    setError(undefined);
+    setPending(true);
+    try {
+      // No network: check the saved verifier and open the pages already kept on the device.
+      // A full load, not a client navigation, so the service worker can serve the kept page.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await verifyOffline(email, password);
+        window.location.replace("/");
+        return;
+      }
+
+      const result = await signIn("credentials", { email, password, redirect: false });
+      if (result?.error) {
+        setError("Email or password is not correct.");
+        return;
+      }
+      // Signed in for real, so remember it for the next offline start.
+      await rememberCredential(email, password);
+      router.replace("/");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not sign in.");
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <Field label="Email" htmlFor="email">
         <Input
           id="email"
@@ -28,10 +65,13 @@ export function LoginForm() {
           required
         />
       </Field>
-      {state.error ? <Alert tone="error">{state.error}</Alert> : null}
+      {error ? <Alert tone="error">{error}</Alert> : null}
       <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full justify-center">
         {pending ? "Signing in…" : "Sign in"}
       </Button>
+      <p className="text-center text-xs text-muted">
+        Use the email and password the office gave you. If it is not working, ask an admin to reset it.
+      </p>
     </form>
   );
 }

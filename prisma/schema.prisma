@@ -98,6 +98,8 @@ model Transaction {
   remarks    String?
   userId     Int
   user       User      @relation("RecordedBy", fields: [userId], references: [id])
+  // The id an offline device gave this movement, so replaying the outbox cannot double-record.
+  clientId   String?   @unique
   createdAt  DateTime  @default(now())
   voidedAt   DateTime?
   voidedById Int?

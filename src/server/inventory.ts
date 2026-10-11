@@ -416,6 +416,17 @@ export async function recordMovement(ctx: Ctx, body: MovementBody): Promise<Move
     let ids: number[];
     let allocations: AllocationLine[] | undefined;
 
+    // A replayed offline movement carries the id it was first given. If it is already here,
+    // answer with what was written rather than writing it a second time.
+    if (body.clientId) {
+      const prior = await tx.transaction.findMany({
+        where: { OR: [{ clientId: body.clientId }, { clientId: { startsWith: `${body.clientId}:` } }] },
+        orderBy: { id: "asc" },
+        select: { id: true },
+      });
+      if (prior.length > 0) return { ids: prior.map((p) => p.id), allocations: undefined };
+    }
+
     if (incoming) {
       // The workbook stores expiry as "8/2027"; accept that and a full date.
       const expiry = incoming.expiry ? (parseExpiry(incoming.expiry) ?? assertExpiry(incoming.expiry)) : null;
@@ -428,7 +439,7 @@ export async function recordMovement(ctx: Ctx, body: MovementBody): Promise<Move
         qty: magnitude,
       });
       const created = await tx.transaction.create({
-        data: { ...common, batchId, qty: signed },
+        data: { ...common, batchId, qty: signed, clientId: rowClientId(body.clientId, 0) },
         select: { id: true },
       });
       ids = [created.id];
@@ -444,9 +455,9 @@ export async function recordMovement(ctx: Ctx, body: MovementBody): Promise<Move
         split = allocateFefo(stock, magnitude, ctx.today);
       }
       ids = [];
-      for (const line of split) {
+      for (const [index, line] of split.entries()) {
         const created = await tx.transaction.create({
-          data: { ...common, batchId: line.batchId, qty: -line.qty },
+          data: { ...common, batchId: line.batchId, qty: -line.qty, clientId: rowClientId(body.clientId, index) },
           select: { id: true },
         });
         ids.push(created.id);
@@ -464,7 +475,7 @@ export async function recordMovement(ctx: Ctx, body: MovementBody): Promise<Move
       }
       assertBatchStaysNonNegative(batch.balance, signed, batch.id);
       const created = await tx.transaction.create({
-        data: { ...common, batchId: adjustment.batchId, qty: signed },
+        data: { ...common, batchId: adjustment.batchId, qty: signed, clientId: rowClientId(body.clientId, 0) },
         select: { id: true },
       });
       ids = [created.id];
@@ -493,6 +504,12 @@ export async function recordMovement(ctx: Ctx, body: MovementBody): Promise<Move
     allocations: written.allocations,
     balances: { [body.itemId]: itemBalance(toStockStock(batches)) },
   };
+}
+
+/** The idempotency key of a row within a movement: the first row keeps the plain id. */
+function rowClientId(base: string | undefined, index: number): string | null {
+  if (!base) return null;
+  return index === 0 ? base : `${base}:${index}`;
 }
 
 function assertExpiry(value: string): string {

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/transactions/allocate — how the server would split this quantity across batches.
- * Read-only, so the Dispense screen can show the earliest-expiry-first plan before saving.
+ * Read-only, so the Record screen can show the earliest-expiry-first plan before saving.
  */
 export async function POST(request: Request) {
   return handle(async () => {

@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CurrentUser } from "@/lib/session";
+import { OfflineBar } from "./OfflineBar";
 import { SignOutButton } from "./SignOutButton";
 import { ThemeToggle } from "./ThemeToggle";
 import {
   IconAudit,
   IconDashboard,
-  IconDispense,
   IconExpiry,
+  IconHelp,
   IconImport,
   IconItems,
   IconMonthEnd,
@@ -39,8 +40,7 @@ const NAV: NavGroup[] = [
     label: "Day to day",
     items: [
       { label: "Dashboard", href: "/", Icon: IconDashboard, blurb: "What needs attention" },
-      { label: "Receive", href: "/receive", Icon: IconReceive, blurb: "Add stock coming in" },
-      { label: "Dispense", href: "/dispense", Icon: IconDispense, blurb: "Hand stock out" },
+      { label: "Record", href: "/receive", Icon: IconReceive, blurb: "Receive, dispense, dispose, adjust" },
     ],
   },
   {
@@ -57,6 +57,12 @@ const NAV: NavGroup[] = [
     items: [
       { label: "Workbook import", href: "/admin/import", Icon: IconImport, blurb: "The old spreadsheet", adminOnly: true },
       { label: "Audit log", href: "/admin/audit", Icon: IconAudit, blurb: "Who changed what", adminOnly: true },
+    ],
+  },
+  {
+    label: "Help",
+    items: [
+      { label: "How to use this", href: "/help", Icon: IconHelp, blurb: "A plain-language guide" },
     ],
   },
 ];
@@ -121,7 +127,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{user.name}</p>
             <p className="text-xs text-muted">
-              {user.role === "ADMIN" ? "Admin — can also edit and void" : "Nurse — can record entries"}
+              {user.role === "ADMIN" ? "Admin — can also edit and correct" : "Nurse — can record entries"}
             </p>
           </div>
         </div>
@@ -131,7 +137,10 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
         </div>
       </aside>
 
-      <main className="min-w-0 py-6 md:py-8">{children}</main>
+      <main className="min-w-0 py-6 md:py-8">
+        <OfflineBar />
+        {children}
+      </main>
     </div>
   );
 }

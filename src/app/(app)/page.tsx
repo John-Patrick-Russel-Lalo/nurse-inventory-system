@@ -68,9 +68,14 @@ export default function DashboardPage() {
         title="Dashboard"
         description="What needs attention today, and what moved most recently."
         actions={
-          <Button variant="plain" size="md" onClick={reload} disabled={refreshing}>
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/help" className={panelLink}>
+              How to use this
+            </Link>
+            <Button variant="plain" size="md" onClick={reload} disabled={refreshing}>
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </Button>
+          </div>
         }
       />
 
@@ -120,7 +125,7 @@ export default function DashboardPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <QuickAction href="/receive" label="Receive stock" hint="Something arrived" Icon={IconReceive} />
-        <QuickAction href="/dispense" label="Dispense stock" hint="Something went out" Icon={IconDispense} />
+        <QuickAction href="/receive?tab=dispense" label="Dispense stock" hint="Something went out" Icon={IconDispense} />
       </div>
 
       <Panel
@@ -220,7 +225,7 @@ export default function DashboardPage() {
               ))}
             </ul>
             <p className="mt-2 text-sm text-muted">
-              The Dispense screen will not offer expired stock. Record a Dispose entry to take it off the shelf.
+              The Record screen will not offer expired stock. Record a Dispose entry to take it off the shelf.
             </p>
           </Card>
         ) : null}

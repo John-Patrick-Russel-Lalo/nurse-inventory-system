@@ -10,8 +10,7 @@ number: every change is a row, and balances are the sum of the rows.
 | Screen | Route | What it does |
 | --- | --- | --- |
 | Dashboard | `/` | Low stock, expiring batches, expired stock still on the shelf, latest entries, usage charts |
-| Receive | `/receive` | Add stock. The expiry picks the batch. Admin-only opening balances |
-| Dispense | `/dispense` | Dispense, Dispose and Adjust. Earliest expiry first, with a manual split |
+| Record | `/receive` | One screen, four tabs: Receive, Dispense, Dispose and Adjust. The expiry picks the batch; dispense is earliest expiry first, with a manual split. Admin-only opening balances |
 | Stock | `/stock` | Balances with the batch breakdown, filtered by search, category or low stock. Download as xlsx |
 | Expiry | `/expiry` | Stocked batches by how soon they expire: expired, 30, 60, 90 days |
 | Month end | `/month-end` | Count the shelf, save counts, close the month, download the month as xlsx. Admin can reopen |
@@ -31,6 +30,7 @@ of a redirect.
 | Method | Route |
 | --- | --- |
 | `GET` | `/api/session` — who is signed in, today's date, closed months |
+| `GET` | `/api/sync` — everything the device mirrors for offline use: items, batches, all entries, closed months |
 | `GET` | `/api/dashboard` |
 | `GET` `POST` | `/api/items` — list, or add (admin) |
 | `GET` `PATCH` | `/api/items/:id` — detail with batches and entries; edit (admin) |
@@ -94,6 +94,37 @@ entries is a zero, never a gap.
 The colours are the same CSS variables the tables use, so the charts follow the light and dark
 setting rather than carrying a palette of their own.
 
+## Working offline
+
+The office loses its connection, so the app is built to keep working without one. It is a
+progressive web app: once a page has been opened, a service worker (`public/sw.js`) keeps it, and
+signing in, reading stock and recording any of the four movements all work with no network.
+
+- **What is on the device.** After a sign-in the app pulls one snapshot (`GET /api/sync`) into
+  IndexedDB: every item, batch and entry, plus the closed months. Entries are small — the imported
+  history is about 1,675 of them — so the whole thing fits and there is nothing to page. Balances
+  are never sent or stored; the device rebuilds them from the entries with the same `src/lib/stock.ts`
+  rules the server uses, so the two cannot disagree.
+- **Recording offline.** A movement made with no network is written to an outbox instead of the
+  API, and shown as a pending row that counts toward the balance straight away. When the connection
+  returns, the queue is replayed. Each movement carries a `clientId` (a UUID), and the server skips
+  any entry it has already stored under that id, so a replay after a dropped response cannot record
+  the same movement twice.
+- **When a replay is refused.** If the server rejects an entry (a batch emptied meanwhile, a closed
+  month), it is kept as a failed item rather than dropped. Failed entries are left out of the
+  balances and shown in the status bar, where they can be reviewed, retried or discarded by hand.
+  Nothing is ever silently lost.
+- **Signing in offline.** There is no network to check a password against, so a PBKDF2 verifier of
+  the last password is kept in IndexedDB (the password itself is not). If the verifier matches, the
+  cached session unlocks the pages already on the device. It is a convenience for a known device,
+  not a substitute for the server's check.
+- **What still needs a connection.** Everything that is not a screen read or a stock movement:
+  month-end close and reopen, the workbook import, the audit log, and both xlsx exports. These say
+  so plainly when they are reached offline.
+
+The status bar under the header is the one place this is visible: it stays out of the way when
+everything has synced, and turns into a panel when entries are queued or a replay has failed.
+
 ## Where the code lives
 
 | Part | Where |
@@ -109,6 +140,9 @@ setting rather than carrying a palette of their own.
 | Domain services: balances, movements, voids, month close, audit | `src/server/` |
 | Route handlers (validation, auth, status codes) | `src/app/api/**/route.ts` |
 | Typed fetch client used by the screens | `src/lib/api.ts` |
+| Offline mirror, outbox and sync (IndexedDB, replay, offline session) | `src/lib/offline/` |
+| Service worker and PWA manifest | `public/sw.js`, `public/manifest.webmanifest` |
+| Sync status bar and offline session plumbing | `src/components/OfflineBar.tsx`, `src/components/OfflineProvider.tsx` |
 | Shared UI pieces | `src/components/` |
 | The three usage charts, on Recharts | `src/components/Charts.tsx` |
 | Database schema | `prisma/schema.prisma`, extra guards in `prisma/constraints.sql` |
@@ -134,8 +168,10 @@ npm run db:deploy           # applies prisma/migrations, which already includes 
 npm run db:seed
 ```
 
-That is the whole setup. The init migration is committed, so there is no `--create-only` step and
-nothing to paste by hand.
+That is the whole setup. The migrations are committed, so there is no `--create-only` step and
+nothing to paste by hand. `db:deploy` also applies `20260102000000_offline_client_id`, which adds
+the `clientId` column the offline outbox uses to replay a movement exactly once; run it before
+deploying a build that uses offline mode.
 
 If you edit `prisma/constraints.sql`, run `npm run db:constraints` to copy it into the init
 migration. On a database that is already migrated, apply the extra SQL by hand, since the guards

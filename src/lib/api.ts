@@ -1,8 +1,9 @@
 "use client";
 
-// Typed wrapper around the API in src/app/api. Every screen reads and writes through here,
-// so the browser never talks to Prisma directly and the server stays the only place that
-// enforces the stock rules.
+// The typed client every screen uses. Reads are answered from the browser mirror, so a screen
+// never waits on the network and works with none. Movements can be recorded offline: they are
+// checked with the shared stock rules, shown at once, and queued for the server. Admin-only
+// changes and the exports still need a connection, and say so plainly when there is none.
 
 import type {
   AllocateBody,
@@ -26,25 +27,25 @@ import type {
   TransactionView,
 } from "./api-types";
 import type { ImportReportResponse } from "@/server/import-report";
+import { ApiError } from "./api-error";
+import {
+  dashboard as offlineDashboard,
+  enqueueMovement,
+  expiryReport,
+  getItem as offlineGetItem,
+  isOnline,
+  listItems as offlineListItems,
+  listTransactions as offlineListTransactions,
+  months as offlineMonths,
+  notifyOutboxChanged,
+  scheduleSync,
+  stockReport,
+  suggestAllocation,
+  ensureReady,
+  store,
+} from "./offline";
 
-export class ApiError extends Error {
-  status: number;
-  code: string;
-  fields: Record<string, string>;
-
-  constructor(message: string, status: number, code = "ERROR", fields: Record<string, string> = {}) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.code = code;
-    this.fields = fields;
-  }
-
-  /** True when the session is gone, so the caller should send the person to the login form. */
-  get isAuth(): boolean {
-    return this.status === 401;
-  }
-}
+export { ApiError };
 
 type Query = Record<string, string | number | boolean | undefined | null>;
 
@@ -88,6 +89,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 const post = <T>(path: string, body: unknown) =>
   request<T>(path, { method: "POST", body: JSON.stringify(body) });
 
+/** Things that still need the server. Says so rather than failing silently. */
+function requireOnline(feature: string): void {
+  if (!isOnline()) {
+    throw new ApiError(
+      `${feature} needs an internet connection. Stock entries recorded offline are queued and sync automatically.`,
+      0,
+      "OFFLINE",
+    );
+  }
+}
+
 /** URLs of the routes that answer with a file rather than JSON. */
 export const downloadUrls = {
   /** The long-format tab. A month is what the office exports; from/to takes a wider range. */
@@ -108,6 +120,9 @@ function fileNameFrom(disposition: string | null, fallback: string): string {
  * error body under an .xlsx name.
  */
 export async function downloadFile(path: string, fallbackName: string): Promise<void> {
+  if (!isOnline()) {
+    throw new ApiError("Exports need an internet connection. Try again when you are back online.", 0, "OFFLINE");
+  }
   let response: Response;
   try {
     response = await fetch(path);
@@ -136,38 +151,127 @@ export async function downloadFile(path: string, fallbackName: string): Promise<
   URL.revokeObjectURL(url);
 }
 
+/** Records online through the server, or queues the movement offline. */
+async function record(body: MovementBody): Promise<MovementResult> {
+  if (!isOnline()) {
+    const result = await enqueueMovement(body);
+    await notifyOutboxChanged();
+    return result;
+  }
+  try {
+    const result = await post<MovementResult>("/api/transactions", body);
+    scheduleSync();
+    return result;
+  } catch (e) {
+    if (e instanceof ApiError && e.code === "OFFLINE") {
+      const result = await enqueueMovement(body);
+      await notifyOutboxChanged();
+      return result;
+    }
+    throw e;
+  }
+}
+
 export const api = {
-  session: () => request<SessionInfo>("/api/session"),
-  dashboard: () => request<DashboardData>("/api/dashboard"),
+  session: async (): Promise<SessionInfo> => {
+    await ensureReady();
+    const cached = await store.getSession();
+    if (!cached) throw ApiError.unauthorized();
+    return {
+      user: cached.user,
+      today: cached.today,
+      closedMonths: cached.closedMonths,
+      nurseBackdateDays: cached.nurseBackdateDays,
+    };
+  },
+  dashboard: (): Promise<DashboardData> => offlineDashboard(),
 
-  stock: (q?: Query) => request<StockResponse>(`/api/stock${qs(q)}`),
-  expiry: (q?: Query) => request<ExpiryResponse>(`/api/expiry${qs(q)}`),
-
-  items: (q?: Query) => request<{ items: ItemSummary[] }>(`/api/items${qs(q)}`),
-  item: (id: string) => request<ItemDetail>(`/api/items/${encodeURIComponent(id)}`),
-  createItem: (body: ItemCreateBody) => post<{ item: ItemSummary }>("/api/items", body),
-  patchItem: (id: string, body: ItemPatchBody) =>
-    request<{ item: ItemSummary }>(`/api/items/${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      body: JSON.stringify(body),
+  stock: (q?: Query): Promise<StockResponse> =>
+    stockReport({
+      q: q?.q as string | undefined,
+      category: q?.category as string | undefined,
+      includeInactive: q?.includeInactive as boolean | undefined,
+      lowOnly: q?.lowOnly as boolean | undefined,
+    }),
+  expiry: (q?: Query): Promise<ExpiryResponse> =>
+    expiryReport({
+      q: q?.q as string | undefined,
+      category: q?.category as string | undefined,
+      includeInactive: q?.includeInactive as boolean | undefined,
+      lowOnly: q?.lowOnly as boolean | undefined,
     }),
 
-  transactions: (q?: Query) =>
-    request<{ transactions: TransactionView[]; total: number }>(`/api/transactions${qs(q)}`),
+  items: async (q?: Query): Promise<{ items: ItemSummary[] }> => ({
+    items: await offlineListItems({
+      q: q?.q as string | undefined,
+      category: q?.category as string | undefined,
+      includeInactive: q?.includeInactive as boolean | undefined,
+      lowOnly: q?.lowOnly as boolean | undefined,
+    }),
+  }),
+  item: (id: string): Promise<ItemDetail> => offlineGetItem(id),
+  createItem: async (body: ItemCreateBody): Promise<{ item: ItemSummary }> => {
+    requireOnline("Adding an item");
+    const result = await post<{ item: ItemSummary }>("/api/items", body);
+    scheduleSync();
+    return result;
+  },
+  patchItem: async (id: string, body: ItemPatchBody): Promise<{ item: ItemSummary }> => {
+    requireOnline("Editing an item");
+    const result = await request<{ item: ItemSummary }>(`/api/items/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+    scheduleSync();
+    return result;
+  },
+
+  transactions: (q?: Query): Promise<{ transactions: TransactionView[]; total: number }> =>
+    offlineListTransactions({
+      itemId: q?.itemId as string | undefined,
+      from: q?.from as string | undefined,
+      to: q?.to as string | undefined,
+      type: q?.type as string | undefined,
+      includeVoided: q?.includeVoided as boolean | undefined,
+      limit: q?.limit as number | undefined,
+      offset: q?.offset as number | undefined,
+    }),
 
   /** How the server would split this quantity, earliest expiry first. */
-  allocate: (body: AllocateBody) => post<AllocationResponse>("/api/transactions/allocate", body),
-  record: (body: MovementBody) => post<MovementResult>("/api/transactions", body),
-  voidEntry: (id: number, reason: string) =>
-    post<{ transaction: TransactionView }>(`/api/transactions/${id}/void`, { reason }),
+  allocate: (body: AllocateBody): Promise<AllocationResponse> => suggestAllocation(body.itemId, body.qty),
+  record,
+  voidEntry: async (id: number, reason: string): Promise<{ transaction: TransactionView }> => {
+    requireOnline("Voiding an entry");
+    const result = await post<{ transaction: TransactionView }>(`/api/transactions/${id}/void`, { reason });
+    scheduleSync();
+    return result;
+  },
 
-  months: () => request<MonthsResponse>("/api/months"),
-  monthEnd: (month?: string) => request<MonthEndResponse>(`/api/month-end${qs({ month })}`),
-  saveCounts: (body: CountsBody) => post<MonthEndResponse>("/api/month-end", body),
-  closeMonth: (body: MonthBody) => post<MonthEndResponse>("/api/month-end/close", body),
-  reopenMonth: (body: ReopenBody) => post<MonthEndResponse>("/api/month-end/reopen", body),
+  months: (): Promise<MonthsResponse> => offlineMonths(),
+  monthEnd: (month?: string): Promise<MonthEndResponse> => {
+    requireOnline("The month-end count");
+    return request<MonthEndResponse>(`/api/month-end${qs({ month })}`);
+  },
+  saveCounts: (body: CountsBody): Promise<MonthEndResponse> => {
+    requireOnline("Saving counts");
+    return post<MonthEndResponse>("/api/month-end", body);
+  },
+  closeMonth: (body: MonthBody): Promise<MonthEndResponse> => {
+    requireOnline("Closing a month");
+    return post<MonthEndResponse>("/api/month-end/close", body);
+  },
+  reopenMonth: (body: ReopenBody): Promise<MonthEndResponse> => {
+    requireOnline("Reopening a month");
+    return post<MonthEndResponse>("/api/month-end/reopen", body);
+  },
 
-  audit: (q?: Query) => request<AuditResponse>(`/api/audit${qs(q)}`),
+  audit: (q?: Query): Promise<AuditResponse> => {
+    requireOnline("The audit log");
+    return request<AuditResponse>(`/api/audit${qs(q)}`);
+  },
   /** What the workbook import brought in, as the import script recorded it. Admin only. */
-  importReport: () => request<ImportReportResponse>("/api/import"),
+  importReport: (): Promise<ImportReportResponse> => {
+    requireOnline("The import report");
+    return request<ImportReportResponse>("/api/import");
+  },
 };

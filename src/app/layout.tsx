@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const plexSans = IBM_Plex_Sans({
@@ -16,12 +17,20 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Nurse Office Inventory",
   description: "Medicine and supply stock for the nurse office.",
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f766e",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${plexSans.variable} ${plexMono.variable}`}>
-      <body className="min-h-dvh antialiased">{children}</body>
+      <body className="min-h-dvh antialiased">
+        {children}
+        <ServiceWorkerRegister />
+      </body>
     </html>
   );
 }

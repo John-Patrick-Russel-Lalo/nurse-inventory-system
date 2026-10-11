@@ -223,6 +223,7 @@ export type MovementBody =
       lot?: string | null;
       source?: string | null;
       remarks?: string | null;
+      clientId?: string;
     }
   | {
       type: "DISPENSE" | "DISPOSE";
@@ -233,6 +234,7 @@ export type MovementBody =
       remarks?: string | null;
       /** Omit to let the server split earliest-expiry-first. */
       allocations?: { batchId: number; qty: number }[];
+      clientId?: string;
     }
   | {
       type: "ADJUST";
@@ -242,6 +244,7 @@ export type MovementBody =
       date?: string;
       source?: string | null;
       remarks?: string | null;
+      clientId?: string;
     };
 
 export interface MovementResult {
@@ -291,4 +294,66 @@ export interface MonthBody {
 export interface ReopenBody {
   month: string;
   reason: string;
+}
+
+// ---------- offline sync ----------
+//
+// GET /api/sync answers with the whole working set so a device can mirror it in IndexedDB.
+// Balances are still never sent: the device rebuilds them from the entries with the same
+// rules as the server (src/lib/stock.ts).
+
+export interface SyncItem {
+  id: string;
+  name: string;
+  variant: string | null;
+  category: Category;
+  unit: string | null;
+  reorderLevel: number | null;
+  active: boolean;
+}
+
+export interface SyncBatch {
+  id: number;
+  itemId: string;
+  expiry: string | null;
+  label: string | null;
+  source: string | null;
+  receivedOn: string | null;
+  qtyReceived: number;
+}
+
+export interface SyncTransaction {
+  id: number;
+  clientId: string | null;
+  date: string;
+  itemId: string;
+  batchId: number;
+  type: TxType;
+  qty: number;
+  source: string | null;
+  remarks: string | null;
+  userName: string;
+  voidedAt: string | null;
+  voidReason: string | null;
+}
+
+export interface SyncSnapshot {
+  today: string;
+  user: { id: number; name: string; email: string; role: Role };
+  closedMonths: string[];
+  nurseBackdateDays: number;
+  serverTime: string;
+  items: SyncItem[];
+  batches: SyncBatch[];
+  transactions: SyncTransaction[];
+}
+
+/** A movement waiting to reach the server, kept in the browser's outbox. */
+export interface OutboxMovement {
+  clientId: string;
+  body: MovementBody;
+  createdAt: string;
+  userName: string;
+  status: "pending" | "failed";
+  error?: string;
 }

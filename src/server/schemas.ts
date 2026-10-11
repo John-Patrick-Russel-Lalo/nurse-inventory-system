@@ -14,6 +14,8 @@ const base = {
   date,
   source: text(120),
   remarks: text(500),
+  // Supplied by an offline device so replaying a queued movement is idempotent.
+  clientId: z.string().trim().min(8).max(64).optional(),
 };
 
 const allocations = z

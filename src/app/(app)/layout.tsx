@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { OfflineProvider } from "@/components/OfflineProvider";
 import { SessionProvider } from "@/components/SessionProvider";
 import { db } from "@/lib/db";
 import { today } from "@/lib/dates";
@@ -22,7 +23,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         nurseBackdateDays: NURSE_BACKDATE_DAYS,
       }}
     >
-      <AppShell user={user}>{children}</AppShell>
+      <OfflineProvider>
+        <AppShell user={user}>{children}</AppShell>
+      </OfflineProvider>
     </SessionProvider>
   );
 }
