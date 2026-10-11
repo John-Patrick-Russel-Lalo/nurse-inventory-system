@@ -1,7 +1,7 @@
 {
-  "name": "Nurse Office Inventory",
-  "short_name": "Nurse Inventory",
-  "description": "Medicine and supply stock for the nurse office.",
+  "name": "MediSakto",
+  "short_name": "MediSakto",
+  "description": "A Medical Supplies Inventory Management System for Batangas State University Balayan Clinic.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

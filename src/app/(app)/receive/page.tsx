@@ -7,6 +7,7 @@ import { CATEGORIES } from "@/lib/api-types";
 import { monthOf } from "@/lib/dates";
 import { allocateFefo } from "@/lib/stock";
 import { usePermissions } from "@/components/SessionProvider";
+import { useFocusMode } from "@/components/FocusMode";
 import { ItemPicker } from "@/components/ItemPicker";
 import {
   Alert,
@@ -66,6 +67,7 @@ interface Line {
 
 export default function ReceivePage() {
   const { isAdmin, today, nurseBackdateDays, closedMonths } = usePermissions();
+  const { focus, setFocus } = useFocusMode();
 
   const [kind, setKind] = useState<Kind>("RECEIVE");
   const [receiveType, setReceiveType] = useState<"RECEIVE" | "OPENING">("RECEIVE");
@@ -306,40 +308,65 @@ export default function ReceivePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Record stock" description="What happened? Pick one of the four choices, then fill in the details below." />
+      {focus ? (
+        <h1 className="sr-only">Record stock</h1>
+      ) : (
+        <PageHeader
+          title="Record stock"
+          description="What happened? Pick one of the four choices, then fill in the details below."
+          actions={
+            <Button type="button" variant="plain" onClick={() => setFocus(true)}>
+              Focus mode
+            </Button>
+          }
+        />
+      )}
 
       {/* Segmented control rather than underline tabs: each option does something different, so they
-          read as four equal choices. The active one is the only filled thing. */}
-      <div
-        className="flex flex-wrap gap-1.5 rounded-2xl border border-rule bg-surface p-1.5 shadow-card"
-        role="tablist"
-        aria-label="Entry type"
-      >
-        {TABS.map((t) => (
-          <button
-            key={t.kind}
-            type="button"
-            role="tab"
-            aria-selected={kind === t.kind}
-            onClick={() => {
-              setKind(t.kind);
-              setError(undefined);
-              setResult(undefined);
-              setManual({});
-              setEdited(false);
-            }}
-            className={cn(
-              "cursor-pointer flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.99]",
-              kind === t.kind
-                ? "bg-accent-soft font-semibold text-accent shadow-raised"
-                : "text-muted hover:bg-surface-2 hover:text-fg",
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
+          read as four equal choices. The active one is the only filled thing. It sticks to the top
+          so the choice stays in reach while the long form below is being filled in. */}
+      <div className="sticky top-0 z-30 -mx-1 -my-1 flex flex-col gap-2 bg-bg px-1 py-1">
+        {focus ? (
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <span className="text-xs font-semibold tracking-wider text-muted uppercase">
+              Focus mode — recording only
+            </span>
+            <Button type="button" variant="plain" size="sm" onClick={() => setFocus(false)}>
+              Back to normal view
+            </Button>
+          </div>
+        ) : null}
+        <div
+          className="flex flex-wrap gap-1.5 rounded-2xl border border-rule bg-surface p-1.5 shadow-card"
+          role="tablist"
+          aria-label="Entry type"
+        >
+          {TABS.map((t) => (
+            <button
+              key={t.kind}
+              type="button"
+              role="tab"
+              aria-selected={kind === t.kind}
+              onClick={() => {
+                setKind(t.kind);
+                setError(undefined);
+                setResult(undefined);
+                setManual({});
+                setEdited(false);
+              }}
+              className={cn(
+                "cursor-pointer flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.99]",
+                kind === t.kind
+                  ? "bg-accent-soft font-semibold text-accent shadow-raised"
+                  : "text-muted hover:bg-surface-2 hover:text-fg",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-sm text-muted">{tab.blurb}</p>
       </div>
-      <p className="-mt-3 text-sm text-muted">{tab.blurb}</p>
 
       {result ? (
         <Alert tone="success">

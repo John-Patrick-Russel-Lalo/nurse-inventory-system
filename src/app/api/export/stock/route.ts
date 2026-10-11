@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       headers: {
         "Content-Type": XLSX_TYPE,
         "Content-Length": String(file.length),
-        "Content-Disposition": `attachment; filename="nurse-inventory-stock${suffix}.xlsx"`,
+        "Content-Disposition": `attachment; filename="medisakto-stock${suffix}.xlsx"`,
         "Cache-Control": "no-store",
       },
     });

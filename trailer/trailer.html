@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MediSakto trailer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f2f5f4;
+    --surface: #ffffff;
+    --surface-2: #f7faf9;
+    --fg: #14232b;
+    --muted: #53666e;
+    --rule: #dbe5e2;
+    --accent: #0b6b63;
+    --accent-rgb: 11 107 99;
+    --accent-soft: #ddf0ed;
+    --accent-fg: #ffffff;
+    --warn: #8a5200;
+    --warn-soft: #fcefd6;
+    --danger: #a3262a;
+    --danger-soft: #fce4e4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1280px; height: 720px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "IBM Plex Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  #stage { position: absolute; inset: 0; overflow: hidden; }
+
+  .wash {
+    position: absolute; inset: -20%;
+    background:
+      radial-gradient(60% 55% at 50% -12%, rgb(var(--accent-rgb) / 0.16), transparent 62%),
+      radial-gradient(55% 50% at 112% 112%, rgb(var(--accent-rgb) / 0.12), transparent 62%);
+  }
+  .blob { position: absolute; top: 0; left: 0; width: 520px; height: 520px; border-radius: 50%; filter: blur(80px); }
+  #blobA { background: rgb(var(--accent-rgb) / 0.22); }
+  #blobB { background: rgb(var(--accent-rgb) / 0.14); }
+  .vignette { position: absolute; inset: 0; background: radial-gradient(85% 85% at 50% 42%, transparent 58%, rgba(20, 35, 43, 0.1)); }
+
+  .scene {
+    position: absolute; inset: 0; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 64px 90px; text-align: center;
+    will-change: opacity, transform;
+  }
+  .inner { width: 100%; max-width: 1060px; display: flex; flex-direction: column; align-items: center; }
+
+  .mark {
+    display: inline-block;
+    background-color: var(--accent);
+    -webkit-mask: url("__LOGO_DATA_URI__") center / contain no-repeat;
+    mask: url("__LOGO_DATA_URI__") center / contain no-repeat;
+  }
+  .chip {
+    display: grid; place-items: center;
+    border-radius: 22px;
+    background: var(--accent-soft);
+    box-shadow: inset 0 1px 0 rgb(var(--accent-rgb) / 0.12), 0 18px 40px -18px rgba(20, 35, 43, 0.35);
+  }
+
+  .eyebrow { font-size: 15px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: 82px; line-height: 1.02; letter-spacing: -1.5px; font-weight: 700; margin: 0; }
+  h2 { font-size: 52px; line-height: 1.06; letter-spacing: -1px; font-weight: 700; margin: 0; }
+  .sub { font-size: 26px; line-height: 1.35; color: var(--muted); margin: 0; max-width: 860px; }
+  .label { font-size: 16px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 22px;
+    background-image: linear-gradient(180deg, rgb(var(--accent-rgb) / 0.06), rgb(var(--accent-rgb) / 0) 48%);
+    box-shadow: inset 0 1px 0 rgb(var(--accent-rgb) / 0.1), 0 22px 55px -22px rgba(20, 35, 43, 0.4);
+  }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+
+  .seg { display: flex; gap: 8px; background: var(--surface); border: 1px solid var(--rule); border-radius: 18px; padding: 7px; box-shadow: inset 0 1px 0 rgb(var(--accent-rgb) / 0.1), 0 12px 30px -16px rgba(20, 35, 43, 0.4); }
+  .seg .tab { flex: 1; padding: 14px 18px; border-radius: 13px; font-size: 22px; font-weight: 600; color: var(--muted); transition: none; }
+  .seg .tab.on { background: var(--accent-soft); color: var(--accent); box-shadow: 0 6px 16px -8px rgb(var(--accent-rgb) / 0.6); }
+
+  .pill { display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 999px; font-size: 22px; font-weight: 600; border: 1px solid var(--rule); background: var(--surface); }
+  .pill .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); }
+  .pill.off { color: var(--warn); border-color: rgb(138 82 0 / 0.25); background: var(--warn-soft); }
+  .pill.off .dot { background: var(--warn); }
+  .pill.on { color: var(--accent); border-color: rgb(var(--accent-rgb) / 0.3); background: var(--accent-soft); }
+  .pill.on .dot { background: var(--accent); }
+
+  .badge { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 999px; font-size: 20px; font-weight: 600; }
+  .badge.warn { color: var(--warn); background: var(--warn-soft); }
+  .badge.danger { color: var(--danger); background: var(--danger-soft); }
+
+  .brow { padding: 20px 24px; border-radius: 16px; border: 1px solid var(--rule); background: var(--surface); }
+  .brow.hot { border-color: rgb(var(--accent-rgb) / 0.45); box-shadow: inset 0 1px 0 rgb(var(--accent-rgb) / 0.12), 0 16px 34px -18px rgb(var(--accent-rgb) / 0.6); }
+  .brow .name { font-size: 24px; font-weight: 600; }
+  .brow .meta { font-size: 20px; color: var(--muted); }
+  .take { font-size: 24px; font-weight: 700; color: var(--accent); }
+
+  #wm { position: absolute; left: 46px; bottom: 38px; display: flex; align-items: center; gap: 12px; opacity: 1; }
+  #wm .name { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  #bar { position: absolute; left: 0; bottom: 0; height: 5px; width: 100%; transform-origin: left center; transform: scaleX(0); background: linear-gradient(90deg, var(--accent), rgb(var(--accent-rgb) / 0.35)); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="wash"></div>
+  <div class="blob" id="blobA"></div>
+  <div class="blob" id="blobB"></div>
+  <div class="vignette"></div>
+
+  <!-- 1. Hook -->
+  <section class="scene" id="s1">
+    <div class="inner" style="gap: 26px;">
+      <span class="chip" style="width: 96px; height: 96px; margin-bottom: 8px;"><span class="mark" style="width: 62px; height: 62px;"></span></span>
+      <div class="eyebrow">MediSakto</div>
+      <h1>Never guess what&rsquo;s on the shelf.</h1>
+      <p class="sub">Stock, expiry and dispensing for the BSU Balayan Clinic &mdash; kept honest, even with no internet.</p>
+    </div>
+  </section>
+
+  <!-- 2. Record stock -->
+  <section class="scene" id="s2">
+    <div class="inner" style="gap: 30px;">
+      <div class="label">Record stock</div>
+      <h2>Log a movement in seconds.</h2>
+      <div class="seg" style="width: 100%; max-width: 960px;">
+        <div class="tab" data-tab="recv">Received</div>
+        <div class="tab" data-tab="give">Given out</div>
+        <div class="tab" data-tab="corr">Correction</div>
+        <div class="tab" data-tab="throw">Thrown away</div>
+      </div>
+      <div class="card" style="width: 100%; max-width: 960px; padding: 24px;">
+        <div class="row">
+          <div style="text-align: left;">
+            <div style="font-size: 26px; font-weight: 600;">Paracetamol 500 mg</div>
+            <div class="meta" style="color: var(--muted); font-size: 20px;">30 tablets &middot; from the clinic shelf</div>
+          </div>
+          <div style="font-size: 34px; font-weight: 700; color: var(--accent);" id="s2amt">&minus;0</div>
+        </div>
+      </div>
+      <p class="sub">Plain words. No codes to memorise.</p>
+    </div>
+  </section>
+
+  <!-- 3. FEFO -->
+  <section class="scene" id="s3">
+    <div class="inner" style="gap: 28px;">
+      <div class="label">Given out &middot; which batch?</div>
+      <h2>Hand out the soonest expiry first.</h2>
+      <div style="width: 100%; max-width: 940px; display: flex; flex-direction: column; gap: 14px;">
+        <div class="brow hot" id="s3r1">
+          <div class="row">
+            <div style="text-align: left;">
+              <div class="name">Amlodipine 5 mg</div>
+              <div class="meta">Expires Mar 2026 &middot; 40 on hand</div>
+            </div>
+            <div class="take" id="s3t1">Taking 0</div>
+          </div>
+        </div>
+        <div class="brow">
+          <div class="row">
+            <div style="text-align: left;">
+              <div class="name">Amlodipine 5 mg</div>
+              <div class="meta">Expires Jul 2026 &middot; 120 on hand</div>
+            </div>
+            <div class="take" style="color: var(--muted);">Taking 0</div>
+          </div>
+        </div>
+      </div>
+      <p class="sub">The system proposes the safest batch &mdash; you can still change the split.</p>
+    </div>
+  </section>
+
+  <!-- 4. Alerts -->
+  <section class="scene" id="s4">
+    <div class="inner" style="gap: 30px;">
+      <h2>Catch expiry and low stock early.</h2>
+      <div style="display: flex; gap: 24px; width: 100%; max-width: 940px;">
+        <div class="card" style="flex: 1; padding: 26px; text-align: left; display: flex; flex-direction: column; gap: 14px;">
+          <span class="badge warn" style="align-self: flex-start;">Expiring soon</span>
+          <div style="font-size: 26px; font-weight: 600;">Amoxicillin 500 mg</div>
+          <div class="meta" style="color: var(--muted); font-size: 21px;">9 days left &middot; 12 on hand</div>
+        </div>
+        <div class="card" style="flex: 1; padding: 26px; text-align: left; display: flex; flex-direction: column; gap: 14px;">
+          <span class="badge danger" style="align-self: flex-start;">Low stock</span>
+          <div style="font-size: 26px; font-weight: 600;">Oral rehydration salts</div>
+          <div class="meta" style="color: var(--muted); font-size: 21px;">Refill at 20 &middot; 14 left</div>
+        </div>
+      </div>
+      <p class="sub">Expiry dates and refill levels, always current.</p>
+    </div>
+  </section>
+
+  <!-- 5. Offline -->
+  <section class="scene" id="s5">
+    <div class="inner" style="gap: 30px;">
+      <h2>Works where the WiFi doesn&rsquo;t.</h2>
+      <div class="pill off" id="s5pill" style="font-size: 26px; padding: 16px 28px;"><span class="dot"></span><span id="s5text">Offline &mdash; saved on this device</span></div>
+      <p class="sub">Everything you record syncs the moment you&rsquo;re back online.</p>
+    </div>
+  </section>
+
+  <!-- 6. End card -->
+  <section class="scene" id="s6">
+    <div class="inner" style="gap: 22px;">
+      <span class="chip" style="width: 132px; height: 132px; margin-bottom: 6px;"><span class="mark" style="width: 86px; height: 86px;"></span></span>
+      <div style="font-size: 74px; font-weight: 700; letter-spacing: -1.4px;">MediSakto</div>
+      <div style="font-size: 30px; color: var(--fg);">A Medical Supplies Inventory Management System</div>
+      <div class="eyebrow" style="letter-spacing: 3px;">Batangas State University &middot; Balayan Clinic</div>
+    </div>
+  </section>
+
+  <div id="wm"><span class="mark" style="width: 30px; height: 30px;"></span><span class="name">MediSakto</span></div>
+  <div id="bar"></div>
+</div>
+
+<script>
+  const IN = 0.6, OUT = 0.6, TOTAL = 30;
+  const scenes = [
+    { id: "s1", start: 0.0,  hold: 3.9 },
+    { id: "s2", start: 4.5,  hold: 4.4 },
+    { id: "s3", start: 9.5,  hold: 4.4 },
+    { id: "s4", start: 14.5, hold: 4.4 },
+    { id: "s5", start: 19.5, hold: 4.4 },
+    { id: "s6", start: 24.5, hold: 4.9, last: true },
+  ];
+  const el = {};
+  scenes.forEach((s) => { el[s.id] = document.getElementById(s.id); });
+  const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+  const eOut = (t) => 1 - Math.pow(1 - clamp(t), 3);
+  const eInOut = (t) => { t = clamp(t); return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+
+  function scene2(lt) {
+    const tabs = el.s2.querySelectorAll(".tab");
+    const on = lt > 0.7;
+    tabs.forEach((tb) => tb.classList.toggle("on", on && tb.dataset.tab === "give"));
+    const n = Math.round(clamp((lt - 1.2) / 0.9) * 10);
+    document.getElementById("s2amt").textContent = "\u2212" + n;
+  }
+  function scene3(lt) {
+    const n = Math.round(clamp((lt - 1.0) / 1.0) * 10);
+    document.getElementById("s3t1").textContent = "Taking " + n;
+  }
+  function scene5(lt) {
+    const online = lt > 2.5;
+    const pill = document.getElementById("s5pill");
+    pill.classList.toggle("off", !online);
+    pill.classList.toggle("on", online);
+    document.getElementById("s5text").textContent = online ? "Back online \u2014 everything synced" : "Offline \u2014 saved on this device";
+  }
+
+  window.renderFrame = function (t) {
+    const bA = document.getElementById("blobA");
+    const bB = document.getElementById("blobB");
+    bA.style.transform = "translate(" + (Math.sin(t * 0.35) * 70 - 160).toFixed(1) + "px," + (Math.cos(t * 0.28) * 55 - 140).toFixed(1) + "px)";
+    bB.style.transform = "translate(" + (Math.sin(t * 0.22 + 2) * 80 + 520).toFixed(1) + "px," + (Math.cos(t * 0.3 + 1) * 60 + 260).toFixed(1) + "px)";
+    document.getElementById("bar").style.transform = "scaleX(" + clamp(t / TOTAL).toFixed(4) + ")";
+
+    scenes.forEach((s) => {
+      const node = el[s.id];
+      const lt = t - s.start;
+      const win = IN + s.hold + (s.last ? 0 : OUT);
+      if (lt < -0.001 || lt > win + 0.001) { node.style.display = "none"; return; }
+      node.style.display = "flex";
+      const inP = clamp(lt / IN);
+      const outP = s.last ? 0 : clamp((lt - (IN + s.hold)) / OUT);
+      node.style.opacity = (eOut(inP) * (1 - eInOut(outP))).toFixed(3);
+      const y = (1 - eOut(inP)) * 30 - eInOut(outP) * 18;
+      node.style.transform = "translateY(" + y.toFixed(1) + "px) scale(" + (0.982 + 0.018 * eOut(inP)).toFixed(4) + ")";
+
+      if (s.id === "s2") scene2(lt);
+      if (s.id === "s3") scene3(lt);
+      if (s.id === "s5") scene5(lt);
+    });
+
+    document.getElementById("wm").style.opacity = (t >= 24.2 ? clamp((24.6 - t) / 0.4) : 1).toFixed(3);
+  };
+</script>
+</body>
+</html>

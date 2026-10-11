@@ -26,11 +26,15 @@
   --ok: #1c6b39;
   --ok-soft: #e0f1e5;
 
-  /* Soft and wide rather than dark and tight: this is a calm screen, not a game. */
-  --shadow-card: 0 1px 2px rgb(20 35 43 / 0.05), 0 1px 3px rgb(20 35 43 / 0.06);
-  --shadow-raised: 0 2px 4px rgb(20 35 43 / 0.05), 0 6px 14px -4px rgb(20 35 43 / 0.1);
-  --shadow-float: 0 4px 8px rgb(20 35 43 / 0.06), 0 18px 40px -8px rgb(20 35 43 / 0.18);
+  /* Soft and wide rather than dark and tight: this is a calm screen, not a game. The extra first
+     line is a hairline of the theme color along the top edge, which is what makes a box read as
+     slightly glassy. */
+  --shadow-card: inset 0 1px 0 rgb(var(--accent-rgb) / 0.1), 0 1px 2px rgb(20 35 43 / 0.05), 0 1px 3px rgb(20 35 43 / 0.06);
+  --shadow-raised: inset 0 1px 0 rgb(var(--accent-rgb) / 0.12), 0 2px 4px rgb(20 35 43 / 0.05), 0 6px 14px -4px rgb(20 35 43 / 0.1);
+  --shadow-float: inset 0 1px 0 rgb(var(--accent-rgb) / 0.14), 0 4px 8px rgb(20 35 43 / 0.06), 0 18px 40px -8px rgb(20 35 43 / 0.18);
   --ring: 0 0 0 3px rgb(var(--accent-rgb) / 0.22);
+  /* The faint wash of theme color at the top of every panel and control. */
+  --surface-sheen: linear-gradient(180deg, rgb(var(--accent-rgb) / 0.06), rgb(var(--accent-rgb) / 0) 48%);
 }
 
 :root[data-theme="light"] {
@@ -58,9 +62,10 @@
   --ok-soft: #16331f;
 
   /* A shadow alone barely reads on a dark surface, so each one carries a hairline of light. */
-  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03), 0 1px 3px rgb(0 0 0 / 0.4);
-  --shadow-raised: 0 1px 0 rgb(255 255 255 / 0.04), 0 4px 12px rgb(0 0 0 / 0.45);
-  --shadow-float: 0 2px 0 rgb(255 255 255 / 0.05), 0 20px 44px rgb(0 0 0 / 0.6);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 0 rgb(255 255 255 / 0.03), 0 1px 3px rgb(0 0 0 / 0.4);
+  --shadow-raised: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 1px 0 rgb(255 255 255 / 0.04), 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-float: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 2px 0 rgb(255 255 255 / 0.05), 0 20px 44px rgb(0 0 0 / 0.6);
+  --surface-sheen: linear-gradient(180deg, rgb(var(--accent-rgb) / 0.1), rgb(var(--accent-rgb) / 0) 52%);
 
   color-scheme: dark;
 }
@@ -177,12 +182,32 @@
 }
 
 body {
-  /* A very soft wash of the theme color, so white cards have something to sit on. */
+  /* A very soft wash of the theme color, so cards have something to sit on. Two corners rather than
+     one, so the background has a direction instead of a flat tint. */
   background-color: var(--bg);
-  background-image: radial-gradient(120rem 60rem at 50% -20rem, rgb(var(--accent-rgb) / 0.07), transparent 60rem);
+  background-image:
+    radial-gradient(120rem 60rem at 50% -20rem, rgb(var(--accent-rgb) / 0.08), transparent 60rem),
+    radial-gradient(70rem 40rem at 100% 100%, rgb(var(--accent-rgb) / 0.05), transparent 55rem);
   color: var(--fg);
   font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
+}
+
+/* Every panel, control and table gets a faint wash of the theme color fading down from the top, and
+   the shadows carry a matching hairline along the top edge. Together they read as a little glassy
+   without hiding whatever sits underneath. */
+.bg-surface {
+  background-image: var(--surface-sheen);
+}
+
+/* The uploaded logo is a single-colour mark on a white background. It is drawn as a mask, so the
+   shape comes from the image and the colour comes from the theme token: the logo follows every
+   colour theme and both modes, and the white background disappears. */
+.brand-mark {
+  display: block;
+  background-color: var(--accent);
+  -webkit-mask: url("/logo-mark.png") center / contain no-repeat;
+  mask: url("/logo-mark.png") center / contain no-repeat;
 }
 
 ::selection {

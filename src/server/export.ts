@@ -108,7 +108,7 @@ export async function ledgerWorkbook(ctx: Ctx, options: LedgerExport): Promise<B
   const { from, to, rows, totals } = await buildLedger(ctx, options);
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Nurse office inventory";
+  wb.creator = "MediSakto";
   wb.created = new Date();
 
   // The catalogue comes first, as it does in NURSE.xlsx, so the file is self-contained and the
@@ -168,7 +168,7 @@ export async function ledgerWorkbook(ctx: Ctx, options: LedgerExport): Promise<B
 /** The file name the browser saves it as. */
 export function ledgerFileName(from: string, to: string): string {
   const single = monthRange(from).to === to ? from : `${from}_to_${to}`;
-  return `nurse-inventory-ledger-${single}.xlsx`;
+  return `medisakto-ledger-${single}.xlsx`;
 }
 
 // ---------- the stock list ----------
@@ -205,7 +205,7 @@ export async function stockWorkbook(ctx: Ctx, filter: ItemFilter): Promise<Buffe
   const report: StockResponse = await stockReport(ctx, filter);
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Nurse office inventory";
+  wb.creator = "MediSakto";
   wb.created = new Date();
 
   const stock = wb.addWorksheet("STOCK");

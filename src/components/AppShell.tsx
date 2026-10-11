@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import type { CurrentUser } from "@/lib/session";
+import { useFocusMode } from "./FocusMode";
 import { OfflineBar } from "./OfflineBar";
 import { SignOutButton } from "./SignOutButton";
 import { ThemeToggle } from "./ThemeToggle";
@@ -82,6 +84,11 @@ function isActive(pathname: string, href: string): boolean {
 
 export function AppShell({ user, children }: { user: CurrentUser; children: React.ReactNode }) {
   const pathname = usePathname();
+  const { focus, setFocus } = useFocusMode();
+  // Focus mode belongs to one screen, so moving to another one puts the menu back.
+  useEffect(() => {
+    setFocus(false);
+  }, [pathname, setFocus]);
   const groups = NAV.map((g) => ({ ...g, items: g.items.filter((n) => !n.adminOnly || user.role === "ADMIN") })).filter(
     (g) => g.items.length > 0,
   );
@@ -93,17 +100,21 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
     .join("");
 
   return (
-    <div className="mx-auto grid min-h-dvh max-w-7xl grid-cols-1 gap-x-8 px-4 md:grid-cols-[15rem_minmax(0,1fr)]">
+    <div
+      className={cn(
+        "mx-auto grid min-h-dvh grid-cols-1 gap-x-8 px-4",
+        focus ? "max-w-5xl" : "max-w-7xl md:grid-cols-[15rem_minmax(0,1fr)]",
+      )}
+    >
+      {focus ? null : (
       <aside className="flex flex-col gap-6 py-6 md:sticky md:top-0 md:h-dvh md:py-8">
         <Link href="/" className="flex items-center gap-2.5 rounded-xl">
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent text-accent-fg shadow-raised">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-5" aria-hidden>
-              <path d="M12 4.5v15M4.5 12h15" />
-            </svg>
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft shadow-raised">
+            <span className="brand-mark size-6" aria-hidden />
           </span>
           <span>
-            <span className="block text-sm leading-tight font-semibold">Nurse office</span>
-            <span className="block text-xs leading-tight text-muted">Inventory</span>
+            <span className="block text-sm leading-tight font-semibold">MediSakto</span>
+            <span className="block text-xs leading-tight text-muted">Medical supplies</span>
           </span>
         </Link>
 
@@ -144,6 +155,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
           <SignOutButton />
         </div>
       </aside>
+      )}
 
       <main className="min-w-0 py-6 md:py-8">
         <OfflineBar />

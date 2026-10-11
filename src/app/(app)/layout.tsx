@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { FocusModeProvider } from "@/components/FocusMode";
 import { OfflineProvider } from "@/components/OfflineProvider";
 import { SessionProvider } from "@/components/SessionProvider";
 import { db } from "@/lib/db";
@@ -24,7 +25,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }}
     >
       <OfflineProvider>
-        <AppShell user={user}>{children}</AppShell>
+        <FocusModeProvider>
+          <AppShell user={user}>{children}</AppShell>
+        </FocusModeProvider>
       </OfflineProvider>
     </SessionProvider>
   );

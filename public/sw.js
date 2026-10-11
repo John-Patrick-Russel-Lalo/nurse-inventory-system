@@ -1,10 +1,10 @@
-// App-shell cache for the nurse inventory app.
+// App-shell cache for the MediSakto app.
 //
 // Pages are server-rendered, so a page that was opened while online is kept as it was (HTML and
 // its React Server Component payload) and served again with no network. API calls are left alone:
 // the app itself answers those from IndexedDB, so the cache never fights the offline store.
 
-const CACHE = "nurse-inventory-shell-v1";
+const CACHE = "medisakto-shell-v1";
 // The app root is behind the sign-in, so it is not pre-cached here: it is captured the first time
 // it is opened while signed in. The login page is safe to keep from the start.
 const SHELL = ["/login", "/manifest.webmanifest", "/icon.svg"];

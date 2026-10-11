@@ -1,5 +1,7 @@
 
-# Nurse Office Inventory
+# MediSakto
+
+A Medical Supplies Inventory Management System for Batangas State University Balayan Clinic.
 
 Next.js (App Router) + TypeScript + Prisma + PostgreSQL. A REST API under `src/app/api` does all
 the work, and the screens under `src/app/(app)` are a TSX client for it. Stock is never stored as a

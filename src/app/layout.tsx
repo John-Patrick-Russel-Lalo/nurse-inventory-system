@@ -16,8 +16,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nurse Office Inventory",
-  description: "Medicine and supply stock for the nurse office.",
+  title: "MediSakto",
+  description:
+    "A Medical Supplies Inventory Management System for Batangas State University Balayan Clinic.",
   manifest: "/manifest.webmanifest",
 };
 

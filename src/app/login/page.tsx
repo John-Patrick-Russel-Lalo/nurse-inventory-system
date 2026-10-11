@@ -8,23 +8,12 @@ export default function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-3 text-center">
-          <span className="grid size-12 place-items-center rounded-2xl bg-accent text-accent-fg shadow-raised">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="size-6"
-              aria-hidden
-            >
-              <path d="M12 4.5v15M4.5 12h15" />
-            </svg>
+          <span className="grid size-14 place-items-center rounded-2xl bg-accent-soft shadow-raised">
+            <span className="brand-mark size-9" aria-hidden />
           </span>
           <div>
-            <h1 className="text-xl font-semibold">Nurse office inventory</h1>
-            <p className="mt-1 text-sm text-muted">Sign in to record and review stock.</p>
+            <h1 className="text-xl font-semibold">MediSakto</h1>
+            <p className="mt-1 text-sm text-muted">Medical supplies inventory for Batangas State University Balayan Clinic.</p>
           </div>
         </div>
 
