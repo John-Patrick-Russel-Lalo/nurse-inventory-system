@@ -26,6 +26,7 @@ import {
   Select,
   Stat,
   TableWrap,
+  categoryLabel,
   cn,
   rowClass,
   thClass,
@@ -63,7 +64,7 @@ export default function ItemDetailPage() {
           title={item.variant ? `${item.name} · ${item.variant}` : item.name}
           description={
             <span className="font-mono">
-              {item.id} · {item.category}
+              {item.id} · {categoryLabel(item.category)}
               {!item.active ? " · inactive" : ""}
             </span>
           }
@@ -82,18 +83,18 @@ export default function ItemDetailPage() {
         <Stat label="Batches with stock" value={stocked.length} hint={`${batches.length} in total`} />
         <Stat label="Unit" value={item.unit ?? "—"} tone={item.unit ? "plain" : "warn"} hint="Used on every entry" />
         <Stat
-          label="Reorder at"
+          label="Refill at"
           value={item.reorderLevel ?? "—"}
           tone={item.reorderLevel === null ? "warn" : "plain"}
-          hint={item.reorderLevel === null ? "Not set" : "Low stock below this"}
+          hint={item.reorderLevel === null ? "Not set" : "Low stock at or below this"}
         />
       </dl>
 
       {data.lowStock ? (
         <Alert tone="warn">
-          <span className="font-medium">At or below the reorder level of {item.reorderLevel}.</span>{" "}
+          <span className="font-medium">At or below the refill level of {item.reorderLevel}.</span>{" "}
           <Link href="/receive" className="font-medium underline underline-offset-2">
-            Receive more
+            Add stock
           </Link>
         </Alert>
       ) : null}
@@ -150,14 +151,14 @@ export default function ItemDetailPage() {
       >
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="flex flex-col gap-2 p-4">
-            <p className="text-sm font-medium">Received and dispensed</p>
+            <p className="text-sm font-medium">Received and given out</p>
             <UsageTrendChart data={usage} />
           </Card>
           <Card className="flex flex-col gap-2 p-4">
             <p className="text-sm font-medium">
               On hand at each month end
               {item.reorderLevel ? (
-                <span className="ml-1 font-normal text-muted">· dashed line is the reorder level</span>
+                <span className="ml-1 font-normal text-muted">· dashed line is the refill level</span>
               ) : null}
             </p>
             <BalanceLineChart data={balances} reorderLevel={item.reorderLevel} />
@@ -171,7 +172,7 @@ export default function ItemDetailPage() {
           showItem={false}
           onChanged={reload}
           emptyTitle="No entries yet for this item."
-          emptyHint="Use Receive to add the first batch."
+          emptyHint="Use “Record stock” to add the first batch."
         />
       </Panel>
     </div>
@@ -241,7 +242,7 @@ function EditItemPanel({
   return (
     <Panel
       title="Edit item"
-      description="Name, unit and reorder level feed the low-stock flag, so changing them affects every screen."
+      description="The unit and refill level feed the low-stock flag, so changing them affects every screen."
     >
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -263,7 +264,7 @@ function EditItemPanel({
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {categoryLabel(c)}
                 </option>
               ))}
             </Select>
@@ -271,7 +272,7 @@ function EditItemPanel({
           <Field label="Unit" htmlFor="e-unit" hint="e.g. box, bottle, tablet.">
             <Input id="e-unit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
           </Field>
-          <Field label="Reorder level" htmlFor="e-level" hint="Blank or 0 turns off the low-stock flag.">
+          <Field label="Refill level" htmlFor="e-level" hint="Blank or 0 turns off the low-stock flag.">
             <Input
               id="e-level"
               type="number"
@@ -300,7 +301,7 @@ function EditItemPanel({
           <Button type="submit" size="md" disabled={busy}>
             {busy ? "Saving…" : "Save changes"}
           </Button>
-          <span className="text-xs text-muted">Saved straight to the audit log.</span>
+          <span className="text-xs text-muted">Saved straight to the Activity history.</span>
         </div>
       </form>
     </Panel>

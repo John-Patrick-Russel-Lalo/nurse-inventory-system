@@ -505,15 +505,20 @@ export function LowBadge() {
   return <span className={cn(badgeBase, "bg-warn-soft text-warn")}>Low</span>;
 }
 
+// Everyday words rather than stock-room terms, since the same person records and manages.
 const TX_LABEL: Record<TxType, string> = {
-  OPENING: "Opening",
+  OPENING: "Starting count",
   RECEIVE: "Received",
-  DISPENSE: "Dispensed",
-  ADJUST: "Adjusted",
-  DISPOSE: "Disposed",
+  DISPENSE: "Given out",
+  ADJUST: "Correction",
+  DISPOSE: "Thrown away",
 };
 
 export const txLabel = (type: TxType): string => TX_LABEL[type];
+
+/** "MEDICINE" reads as shouting; on a screen it is "Medicine". */
+export const categoryLabel = (category: string): string =>
+  category.charAt(0) + category.slice(1).toLowerCase();
 
 /** A signed quantity, coloured by direction. */
 export function Qty({ value }: { value: number }) {

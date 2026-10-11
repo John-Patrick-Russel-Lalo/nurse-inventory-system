@@ -21,6 +21,7 @@ import {
   Select,
   Stat,
   TableWrap,
+  categoryLabel,
   cn,
   linkClass,
   rowClass,
@@ -43,7 +44,7 @@ export default function StockPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Stock on hand"
-        description="Every balance is the sum of the entries behind it. Open a row to see which batch it sits in."
+        description="What is on the shelf right now. Open a row to see which batch it sits in."
       />
 
       {/* Filters sit in one card so they read as a single control, not four loose inputs. */}
@@ -68,7 +69,7 @@ export default function StockPage() {
             <option value="ALL">All categories</option>
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c.charAt(0) + c.slice(1).toLowerCase()}
+                {categoryLabel(c)}
               </option>
             ))}
           </Select>
@@ -111,7 +112,7 @@ export default function StockPage() {
           {refreshing ? <p className="text-xs text-muted">Refreshing…</p> : null}
 
           <Panel
-            title={lowOnly ? "Low stock only" : category === "ALL" ? "All items" : category.charAt(0) + category.slice(1).toLowerCase()}
+            title={lowOnly ? "Low stock only" : category === "ALL" ? "All items" : categoryLabel(category)}
             description={q ? `Matching “${q}”` : undefined}
           >
             {data.rows.length === 0 ? (
@@ -126,7 +127,7 @@ export default function StockPage() {
                     <th scope="col" className={thClass}>Item</th>
                     <th scope="col" className={thClass}>Category</th>
                     <th scope="col" className={thRightClass}>On hand</th>
-                    <th scope="col" className={thRightClass}>Reorder at</th>
+                    <th scope="col" className={thRightClass}>Refill at</th>
                     <th scope="col" className={thClass}>Nearest expiry</th>
                     <th scope="col" className={thClass}><span className="sr-only">Batches</span></th>
                   </tr>
@@ -144,7 +145,7 @@ export default function StockPage() {
                             </Link>
                             <span className="ml-2 font-mono text-xs text-muted">{item.id}</span>
                           </td>
-                          <td className="px-3 py-2 text-xs text-muted">{item.category}</td>
+                          <td className="px-3 py-2 text-xs text-muted">{categoryLabel(item.category)}</td>
                           <td className="px-3 py-2 text-right font-mono">
                             <span className={cn("font-medium", item.lowStock && "text-warn", item.expiredQty > 0 && "text-danger")}>
                               {item.balance}

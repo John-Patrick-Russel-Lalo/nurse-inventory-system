@@ -20,8 +20,8 @@ import {
 } from "./ui";
 
 /**
- * The entry history. A nurse sees it read-only; an admin can void an entry, which is the only
- * way to reverse one (nothing is ever deleted). Voiding asks for a reason.
+ * The entry history. Everyone can read it; an admin can cancel an entry, which is the only way
+ * to reverse a mistake (nothing is ever deleted). Cancelling asks for a reason.
  */
 export function TxTable({
   transactions,
@@ -52,7 +52,7 @@ export function TxTable({
       setReason("");
       onChanged?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not void the entry.");
+      setError(e instanceof Error ? e.message : "Could not cancel the entry.");
     } finally {
       setBusy(false);
     }
@@ -99,7 +99,7 @@ export function TxTable({
                 <td className="px-3 py-2.5 text-right">
                   {t.voidedAt ? (
                     <span className="text-xs text-muted" title={t.voidReason ?? ""}>
-                      Voided
+                      Cancelled
                     </span>
                   ) : (
                     <Button
@@ -111,7 +111,7 @@ export function TxTable({
                         setError(undefined);
                       }}
                     >
-                      Void
+                      Cancel
                     </Button>
                   )}
                 </td>
@@ -124,15 +124,16 @@ export function TxTable({
       {voiding ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" aria-labelledby="void-title">
           <div className="w-full max-w-md rounded-2xl border border-rule bg-surface p-6 shadow-float">
-            <h2 id="void-title" className="text-lg font-semibold">Void entry #{voiding.id}</h2>
+            <h2 id="void-title" className="text-lg font-semibold">Cancel this entry?</h2>
             <p className="mt-1 text-sm text-muted">
               {voiding.itemName} · {txLabel(voiding.type)} {voiding.qty} on {voiding.date}.
             </p>
             <div className="mt-3 flex flex-col gap-3">
               <Alert tone="warn">
-                The entry stays in the history, but stops counting towards stock. Nothing is ever deleted.
+                The entry stays in the history with a note that it was cancelled, but it stops counting towards stock.
+                Nothing is ever deleted.
               </Alert>
-              <Field label="Reason" htmlFor="void-reason" hint="Written to the audit log with your name. At least a few words.">
+              <Field label="Reason" htmlFor="void-reason" hint="Written to the Activity history with your name. At least a few words.">
                 <Textarea
                   id="void-reason"
                   value={reason}
@@ -144,10 +145,10 @@ export function TxTable({
               {error ? <Alert tone="error">{error}</Alert> : null}
               <div className="flex justify-end gap-2">
                 <Button variant="plain" size="md" onClick={() => setVoiding(undefined)} disabled={busy}>
-                  Cancel
+                  Keep the entry
                 </Button>
                 <Button variant="danger" size="md" onClick={submitVoid} disabled={busy || reason.trim().length < 3}>
-                  {busy ? "Voiding…" : "Void entry"}
+                  {busy ? "Cancelling…" : "Cancel entry"}
                 </Button>
               </div>
             </div>

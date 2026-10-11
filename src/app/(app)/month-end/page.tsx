@@ -130,7 +130,7 @@ export default function MonthEndPage() {
     }, `Saved ${dirty.length} ${dirty.length === 1 ? "count" : "counts"}.`);
 
   const close = () =>
-    guard(async () => api.closeMonth({ month }), `${month} is closed. Entries dated inside it are now refused.`);
+    guard(async () => api.closeMonth({ month }), `${month} is closed. New entries dated inside it are now blocked.`);
 
   const reopen = () =>
     guard(async () => {
@@ -145,8 +145,8 @@ export default function MonthEndPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Month end"
-        description="Count the shelf, save the counts, then close the month so nothing can change inside it. Everyone can count; only an admin closes or reopens."
+        title="Month closing"
+        description="Count the shelf, save the counts, then close the month so its numbers cannot change. You can reopen it later if a mistake turns up."
       />
 
       {/* Month picker and the ledger download share one row; the download always matches the month shown. */}
@@ -166,7 +166,7 @@ export default function MonthEndPage() {
         </Button>
         <div className="ml-auto">
           <DownloadButton url={downloadUrls.ledger({ month })} fallbackName={`ledger-${month}.xlsx`} size="md">
-            Download the long-format tab
+            Download the month as Excel
           </DownloadButton>
         </div>
       </Card>
@@ -186,10 +186,10 @@ export default function MonthEndPage() {
               hint={`${sheet.summary.items - filled} left`}
             />
             <Stat
-              label="Variance units"
+              label="Difference"
               value={variance}
               tone={variance ? "warn" : "plain"}
-              hint={variance ? "Counted minus system" : "Everything agrees"}
+              hint={variance ? "You counted minus the system" : "Everything agrees"}
             />
             <Stat label="Status" value={closed ? "Closed" : "Open"} tone={closed ? "ok" : "plain"} hint={month} />
           </dl>
@@ -197,7 +197,7 @@ export default function MonthEndPage() {
           {closed ? (
             <Alert tone="info">
               {month} was closed{sheet.closedAt ? ` on ${sheet.closedAt.slice(0, 10)}` : ""}. Nothing dated inside it
-              can be recorded or voided until an admin reopens it.
+              can be recorded or cancelled until the month is reopened.
             </Alert>
           ) : null}
 
@@ -237,10 +237,10 @@ export default function MonthEndPage() {
             )}
           </Panel>
 
-          <Panel title="The saved workbook tab" description="What the office keeps on file.">
+          <Panel title="The month as a spreadsheet" description="What the office keeps on file.">
             <p className="text-sm text-muted">
-              The download is one row per item per day, where BEGINNING + RECEIVED − DISPENSED = ENDING. It is
-              rebuilt from the entries rather than typed, so the sheet and the app cannot disagree.
+              The download puts one row per item per day, with BEGINNING, RECEIVED, DISPENSED and ENDING columns. It is
+              built from your entries rather than typed, so the sheet and the app always match.
             </p>
           </Panel>
 
@@ -263,7 +263,7 @@ export default function MonthEndPage() {
 
             {!isAdmin && !closed && filled < sheet.summary.items ? (
               <p className="text-sm text-muted">
-                {sheet.summary.items - filled} left to count. Ask an admin to close the month once you are done.
+                {sheet.summary.items - filled} left to count before the month can be closed.
               </p>
             ) : null}
           </div>
@@ -283,7 +283,7 @@ export default function MonthEndPage() {
             <div className="mt-3 flex flex-col gap-3">
               <Alert tone="warn">
                 The saved counts for this month are deleted and entries dated inside it become editable again. The
-                reason is kept in the audit log.
+                reason is kept in the Activity history.
               </Alert>
               <Field label="Reason" htmlFor="reopen-reason" hint="At least a few words.">
                 <Textarea

@@ -35,26 +35,26 @@ type SectionKey = (typeof sections)[number];
 const HEADINGS: { key: SectionKey; title: string; blurb: string; tone: "warn" | "danger" | "plain" }[] = [
   {
     key: "mismatches",
-    title: "Month ends that do not rebuild",
-    blurb: "A month-end balance the app cannot reproduce from the movements. Every one of these needs a person to look at it.",
+    title: "Month totals that do not add up",
+    blurb: "A month-end total the app cannot rebuild from the entries. Each one needs a person to check it.",
     tone: "danger",
   },
   {
     key: "gaps",
     title: "Month openings that did not match the previous close",
-    blurb: "Each of these became an adjustment entry, so the numbers add up. Open the item to see it in the history, and correct it there if the sheet was wrong.",
+    blurb: "Each of these became a Correction entry, so the numbers add up. Open the item to see it in the history, and correct it there if the sheet was wrong.",
     tone: "warn",
   },
   {
     key: "expired",
     title: "Stock on hand past its expiry",
-    blurb: "Imported as it was found, flagged rather than hidden. Dispose of it from the Expiry screen once it is cleared from the shelf.",
+    blurb: "Brought in as it was found, flagged rather than hidden. Record it as “Thrown away” from the Expiry dates screen once it is cleared from the shelf.",
     tone: "danger",
   },
   {
     key: "noExpiry",
     title: "Stock on hand with no expiry recorded",
-    blurb: "The workbook never had an expiry for these. Receiving now asks for one, so this list should only get shorter.",
+    blurb: "The old spreadsheet never had an expiry for these. Recording stock now asks for one, so this list should only get shorter.",
     tone: "warn",
   },
   {
@@ -99,11 +99,11 @@ export default function ImportPage() {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader
-          title="Workbook import"
+          title="Old spreadsheet"
           description="What came in from the old spreadsheet, and what still needs a decision."
         />
         <EmptyState
-          title="The workbook has not been imported yet."
+          title="The old spreadsheet has not been brought in yet."
           hint={
             <>
               Run <code className="font-mono">npm run import:workbook -- --report</code> to see what would happen, then{" "}
@@ -122,12 +122,12 @@ export default function ImportPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Workbook import"
+        title="Old spreadsheet"
         description="What came in from the old spreadsheet, and what still needs a decision. Nothing here changes on its own; the entries are already in the app."
       />
 
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Month ends" value={`${matched}/${reconciliation.monthEndsChecked}`} tone={reconciliation.mismatches.length ? "danger" : "ok"} />
+        <Stat label="Month totals" value={`${matched}/${reconciliation.monthEndsChecked}`} tone={reconciliation.mismatches.length ? "danger" : "ok"} />
         <Stat label="Entries" value={Object.values(summary.counts).reduce((s, n) => s + n, 0).toLocaleString()} />
         <Stat label="Units on hand" value={summary.unitsOnHand.toLocaleString()} />
         <Stat label="Needs attention" value={sections.reduce<number>((s, k) => s + countOf(data, k), 0)} tone="warn" />
@@ -135,18 +135,18 @@ export default function ImportPage() {
 
       <Card className="p-4 text-sm">
         <p>
-          Loaded from <span className="font-mono text-xs">{data.workbook ?? "the workbook"}</span>
+          Loaded from <span className="font-mono text-xs">{data.workbook ?? "the old spreadsheet"}</span>
           {data.importedBy ? ` by ${data.importedBy}` : ""}
           {data.appliedAt ? ` on ${data.appliedAt.slice(0, 10)}` : ""}.
         </p>
         <p className="mt-1 text-muted">
-          {summary.months} months, {summary.firstDate} to {summary.lastDate}, covering {summary.items} items.
-          Received {units(summary.receivedUnits)} and dispensed {units(summary.dispensedUnits)} against the workbook&apos;s
-          own totals.
+          {summary.months} months, {summary.firstDate} to {summary.lastDate}, for {summary.items} items.
+          Received {units(summary.receivedUnits)} and gave out {units(summary.dispensedUnits)}, matching the old
+          spreadsheet&apos;s own totals.
         </p>
         {data.rejectedGaps.length ? (
           <p className="mt-1 text-warn">
-            {data.rejectedGaps.length} gap(s) were left unadjusted on purpose: {data.rejectedGaps.join(", ")}.
+            {data.rejectedGaps.length} gap(s) were left alone on purpose: {data.rejectedGaps.join(", ")}.
           </p>
         ) : null}
       </Card>
@@ -190,7 +190,7 @@ export default function ImportPage() {
         );
       })}
 
-      <Panel title={`Months read (${data.months.length})`} description="One worksheet tab per month in the old workbook.">
+      <Panel title={`Months found (${data.months.length})`} description="One worksheet tab per month in the old spreadsheet.">
         <TableWrap>
           <thead>
             <tr>
@@ -222,7 +222,7 @@ export default function ImportPage() {
 
       {data.unmatchedWideRows.length ? (
         <Alert tone="warn">
-          {data.unmatchedWideRows.length} row(s) in the wide sheet matched no item ID, so nothing was imported from
+          {data.unmatchedWideRows.length} row(s) in the wide sheet matched no item, so nothing was brought in from
           them: {data.unmatchedWideRows.map((u) => `${u.sheet} row ${u.row} "${u.name}"`).join(", ")}.
         </Alert>
       ) : null}
@@ -237,7 +237,7 @@ function MismatchTable({ rows }: { rows: { month: string; itemId: string; expect
         <tr>
           <th scope="col" className={thClass}>Month</th>
           <th scope="col" className={thClass}>Item</th>
-          <th scope="col" className={thRightClass}>Workbook</th>
+          <th scope="col" className={thRightClass}>Old sheet</th>
           <th scope="col" className={thRightClass}>Rebuilt</th>
         </tr>
       </thead>
@@ -262,9 +262,9 @@ function GapTable({ rows }: { rows: ImportReportResponse["gaps"] }) {
         <tr>
           <th scope="col" className={thClass}>Item</th>
           <th scope="col" className={thClass}>Date</th>
-          <th scope="col" className={thRightClass}>Was</th>
-          <th scope="col" className={thRightClass}>Became</th>
-          <th scope="col" className={thRightClass}>Adjustment</th>
+          <th scope="col" className={thRightClass}>Before</th>
+          <th scope="col" className={thRightClass}>After</th>
+          <th scope="col" className={thRightClass}>Correction</th>
         </tr>
       </thead>
       <tbody>

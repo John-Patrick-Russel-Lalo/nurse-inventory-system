@@ -65,7 +65,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Dashboard"
+        title="Home"
         description="What needs attention today, and what moved most recently."
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -107,7 +107,7 @@ export default function DashboardPage() {
           label="Low stock"
           value={data.lowStock.length}
           tone={data.lowStock.length ? "warn" : "plain"}
-          hint="At or below reorder"
+          hint="At or below refill level"
         />
         <Stat
           label="Expiring ≤90d"
@@ -119,23 +119,23 @@ export default function DashboardPage() {
           label="Expired in stock"
           value={data.expired.length}
           tone={data.expired.length ? "danger" : "plain"}
-          hint="Dispose of these"
+          hint="Record these as thrown away"
         />
       </dl>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <QuickAction href="/receive" label="Receive stock" hint="Something arrived" Icon={IconReceive} />
-        <QuickAction href="/receive?tab=dispense" label="Dispense stock" hint="Something went out" Icon={IconDispense} />
+        <QuickAction href="/receive" label="Stock arrived" hint="Write it down as Received" Icon={IconReceive} />
+        <QuickAction href="/receive?tab=dispense" label="Give stock out" hint="Write it down as Given out" Icon={IconDispense} />
       </div>
 
       <Panel
         title="Needs attention"
-        description={totals ? `${totals.month}: ${totals.received} received, ${totals.dispensed} dispensed so far.` : undefined}
+        description={totals ? `${totals.month}: ${totals.received} received, ${totals.dispensed} given out so far.` : undefined}
       >
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Panel title="Low stock">
             {data.lowStock.length === 0 ? (
-              <EmptyState title="Nothing is below its reorder level." hint="An item appears here once it has a reorder level set and stock falls to it." />
+              <EmptyState title="Nothing is below its refill level." hint="An item appears here once you set a refill level and its stock reaches it." />
             ) : (
               <>
                 <TableWrap>
@@ -143,7 +143,7 @@ export default function DashboardPage() {
                     <tr>
                       <th scope="col" className={thClass}>Item</th>
                       <th scope="col" className={thRightClass}>On hand</th>
-                      <th scope="col" className={thRightClass}>Reorder at</th>
+                      <th scope="col" className={thRightClass}>Refill at</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -225,7 +225,7 @@ export default function DashboardPage() {
               ))}
             </ul>
             <p className="mt-2 text-sm text-muted">
-              The Record screen will not offer expired stock. Record a Dispose entry to take it off the shelf.
+              Expired stock is never handed out. Record it as “Thrown away” to take it off the shelf.
             </p>
           </Card>
         ) : null}
@@ -243,7 +243,7 @@ export default function DashboardPage() {
       {totals ? (
         <Panel
           title={`Most used in ${totals.month}`}
-          description={`${totals.dispensed} ${totals.dispensed === 1 ? "unit" : "units"} dispensed so far this month.`}
+          description={`${totals.dispensed} ${totals.dispensed === 1 ? "unit" : "units"} given out so far this month.`}
         >
           <Card className="p-4">
             <TopUsedChart data={data.topUsed} />
@@ -251,13 +251,13 @@ export default function DashboardPage() {
         </Panel>
       ) : null}
 
-      <Panel title="Latest entries" description="The last dozen movements across the office.">
+      <Panel title="Latest entries" description="The last dozen entries recorded.">
         <TxTable transactions={data.recent} onChanged={reload} />
       </Panel>
 
       {!isAdmin ? (
         <p className="text-xs text-muted">
-          Entries dated inside a closed month cannot be recorded. Ask an admin to reopen it.
+          Entries dated inside a closed month cannot be recorded. A closed month blocks new entries dated inside it.
         </p>
       ) : null}
     </div>

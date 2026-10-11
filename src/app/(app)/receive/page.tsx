@@ -1,26 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { AllocationResponse, ItemDetail, ItemSummary, MovementBody, MovementResult } from "@/lib/api-types";
+import { CATEGORIES } from "@/lib/api-types";
 import { monthOf } from "@/lib/dates";
 import { usePermissions } from "@/components/SessionProvider";
 import { ItemPicker } from "@/components/ItemPicker";
 import {
   Alert,
   Button,
+  EmptyState,
   Field,
   Input,
+  Loading,
+  LowBadge,
   PageHeader,
   Panel,
+  SearchInput,
   Select,
   TableWrap,
   Textarea,
+  categoryLabel,
   cn,
+  linkClass,
   rowClass,
   thClass,
   thRightClass,
-  txLabel,
 } from "@/components/ui";
 
 type Kind = "RECEIVE" | "DISPENSE" | "DISPOSE" | "ADJUST";
@@ -28,23 +34,23 @@ type Kind = "RECEIVE" | "DISPENSE" | "DISPOSE" | "ADJUST";
 const TABS: { kind: Kind; label: string; blurb: string }[] = [
   {
     kind: "RECEIVE",
-    label: "Receive",
-    blurb: "Stock arriving from a supplier or a transfer. The expiry decides which batch it joins.",
+    label: "Received",
+    blurb: "Stock that arrived — from a supplier, a ward, or a delivery. The expiry you enter decides which batch it joins.",
   },
   {
     kind: "DISPENSE",
-    label: "Dispense",
-    blurb: "Stock handed out. The earliest expiry is used first unless you split it yourself.",
+    label: "Given out",
+    blurb: "Medicine or supplies you handed out. The batch with the earliest expiry is used first.",
   },
   {
     kind: "DISPOSE",
-    label: "Dispose",
-    blurb: "Stock thrown away: expired, broken or recalled. Give a reason in the remarks.",
+    label: "Thrown away",
+    blurb: "Stock you removed from the shelf because it expired, broke, or was recalled. Say why in the remarks.",
   },
   {
     kind: "ADJUST",
-    label: "Adjust",
-    blurb: "Correct one batch to a counted figure. Use this for month-end corrections.",
+    label: "Correction",
+    blurb: "Change one batch so it matches what you counted on the shelf. Use this after a stock count.",
   },
 ];
 
@@ -77,9 +83,62 @@ export default function ReceivePage() {
   const [result, setResult] = useState<MovementResult>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [allItems, setAllItems] = useState<ItemSummary[]>();
+  const [listQuery, setListQuery] = useState("");
+  const [listCategory, setListCategory] = useState("ALL");
+  const [page, setPage] = useState(0);
 
   const amount = Number(qty);
   const monthClosed = closedMonths.includes(monthOf(date));
+
+  // Load every item once (again after each save, so the balances in the overview stay true).
+  useEffect(() => {
+    let live = true;
+    api
+      .items()
+      .then((r) => live && setAllItems(r.items))
+      .catch(() => live && setAllItems([]));
+    return () => {
+      live = false;
+    };
+  }, [result]);
+
+  // Filter in the browser, the same way the item picker does.
+  const filteredItems = useMemo(() => {
+    const q = listQuery.trim().toLowerCase();
+    return (allItems ?? []).filter((i) => {
+      if (listCategory !== "ALL" && i.category !== listCategory) return false;
+      if (!q) return true;
+      return `${i.id} ${i.name} ${i.variant ?? ""}`.toLowerCase().includes(q);
+    });
+  }, [allItems, listQuery, listCategory]);
+
+  // Ten to a page: a long catalogue reads better in small pages than one long scroll.
+  const pageSize = 10;
+  const pageCount = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const safePage = Math.min(page, pageCount - 1);
+  const pageStart = safePage * pageSize;
+  const pageItems = filteredItems.slice(pageStart, pageStart + pageSize);
+
+  // A new search or category starts again from the first page.
+  useEffect(() => {
+    setPage(0);
+  }, [listQuery, listCategory]);
+
+  // Choosing from the overview table fills the form above and clears whatever was half-typed.
+  const choose = (picked: ItemSummary) => {
+    setItem(picked);
+    setQty("");
+    setExpiry("");
+    setLot("");
+    setBatchId("");
+    setAdjustQty("");
+    setLines(undefined);
+    setEdited(false);
+    setResult(undefined);
+    setError(undefined);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Deep-link straight to a tab, e.g. the dashboard's "Dispense stock" shortcut.
   useEffect(() => {
@@ -225,11 +284,19 @@ export default function ReceivePage() {
   };
 
   const tab = TABS.find((t) => t.kind === kind)!;
-  const receiveLabel = receiveType === "OPENING" ? "opening balance" : "received";
+  const receiveLabel = receiveType === "OPENING" ? "starting count" : "received";
+  const saveLabel =
+    kind === "RECEIVE"
+      ? `Save ${receiveLabel}`
+      : kind === "DISPENSE"
+        ? "Save as given out"
+        : kind === "DISPOSE"
+          ? "Save as thrown away"
+          : "Save correction";
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Record stock" description={tab.blurb} />
+      <PageHeader title="Record stock" description="What happened? Pick one of the four choices, then fill in the details below." />
 
       {/* Segmented control rather than underline tabs: each option does something different, so they
           read as four equal choices. The active one is the only filled thing. */}
@@ -266,31 +333,29 @@ export default function ReceivePage() {
 
       {result ? (
         <Alert tone="success">
-          Saved {result.transactions.length} {txLabel(result.transactions[0]?.type ?? kind).toLowerCase()}{" "}
-          {result.transactions.length === 1 ? "entry" : "entries"} for{" "}
-          <span className="font-medium">{item?.name}</span>. New balance:{" "}
+          <span className="font-medium">Saved.</span> {item?.name} is now at{" "}
           <span className="font-mono">{result.balances[item!.id]}</span>
-          {item?.unit ? ` ${item.unit}` : ""}.
-          {result.allocations && result.allocations.length > 1 ? " Split across batches as planned." : ""}
+          {item?.unit ? ` ${item.unit}` : ""} on the shelf.
+          {result.allocations && result.allocations.length > 1 ? " It was taken from more than one batch, as shown above." : ""}
         </Alert>
       ) : null}
 
       <form onSubmit={submit} className="flex flex-col gap-5">
         <Panel
-          title={kind === "RECEIVE" ? "1. What is arriving?" : "1. Which item?"}
-          description="Search the catalogue, then pick the item."
+          title="1. Choose the item"
+          description="Search the list, then pick the item."
           className="max-w-2xl"
         >
           <div className="flex flex-col gap-3">
             {kind === "RECEIVE" && isAdmin ? (
-              <Field label="Entry type" htmlFor="receiveType" className="max-w-xs">
+              <Field label="Kind of entry" htmlFor="receiveType" className="max-w-xs">
                 <Select
                   id="receiveType"
                   value={receiveType}
                   onChange={(e) => setReceiveType(e.target.value as "RECEIVE" | "OPENING")}
                 >
-                  <option value="RECEIVE">Received (adds to stock)</option>
-                  <option value="OPENING">Opening balance (starting figure)</option>
+                  <option value="RECEIVE">Received (adds to the shelf)</option>
+                  <option value="OPENING">Starting count (the figure you began with)</option>
                 </Select>
               </Field>
             ) : null}
@@ -311,13 +376,13 @@ export default function ReceivePage() {
 
         {item ? (
           <Panel
-            title={kind === "ADJUST" ? "2. Which batch, and by how much?" : "2. How much, and when?"}
+            title={kind === "ADJUST" ? "2. Which batch, and how much to change it by?" : "2. How much, and when?"}
             description={
               kind === "ADJUST"
-                ? "Correct a single batch to match a counted figure."
+                ? "Change one batch so it matches what you counted on the shelf."
                 : kind === "RECEIVE"
-                  ? "Expiry decides which batch the stock joins."
-                  : "The earliest expiry is used first. Adjust the split if that is not what you want."
+                  ? "The expiry decides which batch the stock joins."
+                  : "The batch with the earliest expiry is used first. Change the split below if that is not what you want."
             }
             className="max-w-2xl"
           >
@@ -334,7 +399,7 @@ export default function ReceivePage() {
                       ))}
                     </Select>
                   </Field>
-                  <Field label="Change" htmlFor="adjust" hint="Signed. A positive number adds, a negative one removes.">
+                  <Field label="Change by" htmlFor="adjust" hint="A plus number adds, a minus number removes. For example 5 or -2.">
                     <Input
                       id="adjust"
                       value={adjustQty}
@@ -353,11 +418,11 @@ export default function ReceivePage() {
                     hint={
                       kind === "RECEIVE"
                         ? item.unit
-                          ? `In ${item.unit}. Whole numbers only.`
-                          : "Whole numbers only."
+                          ? `How many arrived? In ${item.unit}. Whole numbers only.`
+                          : "How many arrived? Whole numbers only."
                         : item.unit
-                          ? `In ${item.unit}. Usable stock: ${usable.reduce((s, b) => s + b.balance, 0)}.`
-                          : `Usable stock: ${usable.reduce((s, b) => s + b.balance, 0)}.`
+                          ? `How many? In ${item.unit}. Available: ${usable.reduce((s, b) => s + b.balance, 0)}.`
+                          : `How many? Available: ${usable.reduce((s, b) => s + b.balance, 0)}.`
                     }
                   >
                     <Input
@@ -393,8 +458,8 @@ export default function ReceivePage() {
                 htmlFor="date"
                 hint={
                   isAdmin
-                    ? "Admins can backdate freely, but never into the future."
-                    : `Nurses can record up to ${nurseBackdateDays} days back.`
+                    ? "You can change the date, but it cannot be in the future."
+                    : `You can go back up to ${nurseBackdateDays} days.`
                 }
               >
                 <Input id="date" type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} required />
@@ -412,7 +477,7 @@ export default function ReceivePage() {
                 label="Remarks"
                 htmlFor="remarks"
                 className={kind === "RECEIVE" ? "sm:col-span-2" : undefined}
-                hint="Optional. A reason here makes the audit log easier to read later."
+                hint="Optional, but a reason here makes the Activity history easier to read later."
               >
                 <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
               </Field>
@@ -422,11 +487,11 @@ export default function ReceivePage() {
 
         {(kind === "DISPENSE" || kind === "DISPOSE") && item && amount > 0 && usable.length > 0 ? (
           <Panel
-            title="3. Which batches?"
+            title="3. Which batches does it come from?"
             description={
               isSplit
-                ? "This quantity spans more than one batch. Check the split before saving."
-                : "One batch covers this quantity, so there is nothing to choose."
+                ? "This amount is more than one batch holds, so it is split across batches. Check the split before saving."
+                : "One batch covers this amount, so there is nothing to choose."
             }
             className="max-w-3xl"
             actions={
@@ -440,7 +505,7 @@ export default function ReceivePage() {
                     setLines(undefined);
                   }}
                 >
-                  Back to earliest expiry first
+                  Use earliest expiry first
                 </Button>
               ) : undefined
             }
@@ -520,13 +585,13 @@ export default function ReceivePage() {
         {expiredBatches.length > 0 && (kind === "DISPENSE" || kind === "DISPOSE") ? (
           <Alert tone="warn">
             {expiredBatches.reduce((s, b) => s + b.balance, 0)} units on this item are already expired and are never
-            handed out automatically. Record a Dispose entry to clear them.
+            handed out automatically. Record them as “Thrown away” to clear them.
           </Alert>
         ) : null}
 
         {monthClosed ? (
           <Alert tone="error">
-            {monthOf(date)} is closed. An admin must reopen it before anything can be recorded.
+            {monthOf(date)} is closed. Reopen it from “Month closing” before you can record anything here.
           </Alert>
         ) : null}
         {error ? <Alert tone="error">{error}</Alert> : null}
@@ -542,12 +607,10 @@ export default function ReceivePage() {
               ((kind === "DISPENSE" || kind === "DISPOSE") && edited && lineTotal !== amount)
             }
           >
-            {busy
-              ? "Saving…"
-              : `Record ${kind === "RECEIVE" ? receiveLabel : txLabel(kind).toLowerCase()}`}
+            {busy ? "Saving…" : saveLabel}
           </Button>
           <Button type="button" variant="plain" size="lg" onClick={reset} disabled={busy}>
-            Clear
+            Clear form
           </Button>
           {!item ? <span className="text-sm text-muted">Pick an item above to enable saving.</span> : null}
         </div>
@@ -565,13 +628,137 @@ export default function ReceivePage() {
       ) : (
         <Panel title="What the system does for you" className="max-w-2xl">
           <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted marker:text-rule">
-            <li>Dispense uses the batch that expires soonest first, so nothing old is left behind.</li>
+            <li>Stock is given out from the batch that expires soonest first, so nothing old is left behind.</li>
             <li>It only splits across batches when one batch is not enough.</li>
             <li>Expired stock and empty batches are never handed out automatically.</li>
             <li>Stock can never go below zero, so the last unit cannot be handed out twice.</li>
           </ul>
         </Panel>
       )}
+
+      {/* An overview of everything the office keeps, so the picker above is not the only way in. */}
+      <Panel
+        title="All items at a glance"
+        description="Tap a row to choose that item for this entry. Use the search and category filters to narrow the list."
+        actions={
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="sm:w-60">
+              <label htmlFor="receive-list-q" className="sr-only">Search items</label>
+              <SearchInput
+                id="receive-list-q"
+                value={listQuery}
+                onChange={(e) => setListQuery(e.target.value)}
+                placeholder="Name, brand or ID…"
+              />
+            </div>
+            <div className="sm:w-40">
+              <label htmlFor="receive-list-category" className="sr-only">Category</label>
+              <Select
+                id="receive-list-category"
+                value={listCategory}
+                onChange={(e) => setListCategory(e.target.value)}
+              >
+                <option value="ALL">All categories</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {categoryLabel(c)}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+        }
+      >
+        {!allItems ? (
+          <Loading label="Loading items…" />
+        ) : filteredItems.length === 0 ? (
+          <EmptyState title="No items match." hint="Clear the search or choose a different category." />
+        ) : (
+          <>
+            <TableWrap>
+              <thead>
+                <tr>
+                  <th scope="col" className={thClass}>Item</th>
+                  <th scope="col" className={thClass}>Category</th>
+                  <th scope="col" className={thRightClass}>On hand</th>
+                  <th scope="col" className={thClass}>Nearest expiry</th>
+                  <th scope="col" className={thRightClass}><span className="sr-only">Choose</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageItems.map((row) => {
+                  const selected = row.id === item?.id;
+                  return (
+                    <tr
+                      key={row.id}
+                      className={cn(rowClass, "cursor-pointer", selected && "bg-accent-soft")}
+                      onClick={() => choose(row)}
+                    >
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            choose(row);
+                          }}
+                          className={cn(linkClass, "text-left")}
+                        >
+                          {row.name}
+                          {row.variant ? <span className="text-muted"> · {row.variant}</span> : null}
+                        </button>
+                        <span className="ml-2 font-mono text-xs text-muted">{row.id}</span>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-muted">{categoryLabel(row.category)}</td>
+                      <td className="px-3 py-2 text-right font-mono">
+                        <span className={cn("font-medium", row.lowStock && "text-warn", row.expiredQty > 0 && "text-danger")}>
+                          {row.balance}
+                        </span>
+                        {row.unit ? <span className="text-muted"> {row.unit}</span> : null}
+                        {row.lowStock ? <LowBadge /> : null}
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{row.nearestExpiry ?? "—"}</td>
+                      <td className="px-3 py-2 text-right">
+                        <span className={cn("text-xs", selected ? "font-medium text-accent" : "text-muted")}>
+                          {selected ? "Selected" : "Choose"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </TableWrap>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted">
+                Showing {pageStart + 1}–{Math.min(pageStart + pageSize, filteredItems.length)} of {filteredItems.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="plain"
+                  size="md"
+                  onClick={() => setPage(safePage - 1)}
+                  disabled={safePage === 0}
+                >
+                  ← Back
+                </Button>
+                <span className="text-sm text-muted">
+                  Page {safePage + 1} of {pageCount}
+                </span>
+                <Button
+                  type="button"
+                  variant="plain"
+                  size="md"
+                  onClick={() => setPage(safePage + 1)}
+                  disabled={safePage >= pageCount - 1}
+                >
+                  Next →
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </Panel>
     </div>
   );
 }

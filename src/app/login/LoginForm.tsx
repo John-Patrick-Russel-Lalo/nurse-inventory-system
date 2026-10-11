@@ -70,7 +70,7 @@ export function LoginForm() {
         {pending ? "Signing in…" : "Sign in"}
       </Button>
       <p className="text-center text-xs text-muted">
-        Use the email and password the office gave you. If it is not working, ask an admin to reset it.
+        Use the email and password the office gave you. If it does not work, it can be reset from the user settings.
       </p>
     </form>
   );

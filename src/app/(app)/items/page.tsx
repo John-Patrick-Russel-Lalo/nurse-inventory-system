@@ -23,6 +23,7 @@ import {
   Select,
   Stat,
   TableWrap,
+  categoryLabel,
   cn,
   linkClass,
   rowClass,
@@ -49,11 +50,11 @@ export default function ItemsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Items"
+        title="Item list"
         description={
           isAdmin
-            ? "The catalogue. Units and reorder levels decide what counts as low stock."
-            : "The catalogue. Ask an admin to change anything here."
+            ? "Everything the office keeps. The unit and refill level decide what counts as low stock."
+            : "Everything the office keeps."
         }
         actions={
           isAdmin ? (
@@ -104,7 +105,7 @@ export default function ItemsPage() {
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Stat label="Items shown" value={rows.length} />
           <Stat label="No unit set" value={missingUnit} tone={missingUnit ? "warn" : "plain"} />
-          <Stat label="No reorder level" value={missingLevel} tone={missingLevel ? "warn" : "plain"} />
+          <Stat label="No refill level" value={missingLevel} tone={missingLevel ? "warn" : "plain"} />
           <Stat label="Low stock" value={rows.filter((i) => i.lowStock).length} />
         </dl>
       ) : null}
@@ -114,7 +115,7 @@ export default function ItemsPage() {
       {refreshing ? <p className="text-xs text-muted">Refreshing…</p> : null}
 
       <Panel
-        title={category === "ALL" ? "All items" : category.charAt(0) + category.slice(1).toLowerCase()}
+        title={category === "ALL" ? "All items" : categoryLabel(category)}
         description={q ? `Matching “${q}”` : undefined}
         actions={refreshing ? <span className="text-sm text-muted">Refreshing…</span> : undefined}
       >
@@ -132,7 +133,7 @@ export default function ItemsPage() {
                 <th scope="col" className={thClass}>Item</th>
                 <th scope="col" className={thClass}>Category</th>
                 <th scope="col" className={thClass}>Unit</th>
-                <th scope="col" className={thRightClass}>Reorder at</th>
+                <th scope="col" className={thRightClass}>Refill at</th>
                 <th scope="col" className={thRightClass}>On hand</th>
               </tr>
             </thead>
@@ -151,7 +152,7 @@ export default function ItemsPage() {
                     {item.variant ? <span className="text-muted"> · {item.variant}</span> : null}
                     {!item.active ? <span className="ml-2 text-xs text-muted">(inactive)</span> : null}
                   </td>
-                  <td className="px-3 py-2.5 text-xs text-muted">{item.category}</td>
+                  <td className="px-3 py-2.5 text-xs text-muted">{categoryLabel(item.category)}</td>
                   <td className={cn("px-3 py-2.5 text-xs", !item.unit && "text-warn")}>{item.unit ?? "—"}</td>
                   <td className={cn("px-3 py-2.5 text-right font-mono text-xs", item.reorderLevel === null && "text-warn")}>
                     {item.reorderLevel ?? "—"}
@@ -200,7 +201,7 @@ function NewItemDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       <form onSubmit={submit} className="w-full max-w-md rounded-2xl border border-rule bg-surface p-6 shadow-float">
         <h2 id="new-item-title" className="text-lg font-semibold">Add an item</h2>
         <p className="mt-1 text-sm text-muted">
-          Leave the ID empty to continue after the highest one in the same block.
+          Leave the ID empty and the next number is filled in for you.
         </p>
 
         <div className="mt-5 flex flex-col gap-3.5">
@@ -225,7 +226,7 @@ function NewItemDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {categoryLabel(c)}
                   </option>
                 ))}
               </Select>
@@ -238,7 +239,7 @@ function NewItemDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
             <Field label="ID" htmlFor="new-id" hint="e.g. MED-152.">
               <Input id="new-id" value={form.id ?? ""} onChange={(e) => set("id", e.target.value)} />
             </Field>
-            <Field label="Reorder level" htmlFor="new-level" hint="Blank or 0 to turn it off.">
+            <Field label="Refill level" htmlFor="new-level" hint="Blank or 0 to turn it off.">
               <Input
                 id="new-level"
                 type="number"

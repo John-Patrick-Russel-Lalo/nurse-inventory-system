@@ -66,7 +66,7 @@ export default function ExpiryPage() {
 
       <Panel
         title="Expired, still on the shelf"
-        description="These cannot be dispensed. Remove them and record a Dispose entry once they leave."
+        description="These cannot be given out. When you remove them, record them as “Thrown away”."
       >
         {data.expired.length === 0 ? (
           <EmptyState
@@ -101,7 +101,7 @@ export default function ExpiryPage() {
         <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted marker:text-rule">
           <li>Only the month is recorded, so an expiry date is stored as the last day of that month.</li>
           <li>A batch is usable on its expiry date and counts as expired from the next day.</li>
-          <li>Batches with no expiry date are left out of this report, and are the last ones used when dispensing.</li>
+          <li>Batches with no expiry date are left out of this report, and are used last when giving stock out.</li>
         </ul>
       </Panel>
     </div>

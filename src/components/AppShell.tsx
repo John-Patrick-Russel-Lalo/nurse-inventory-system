@@ -34,29 +34,30 @@ interface NavGroup {
 }
 
 // Grouped so it is obvious which screens are the day's work and which are looking things up.
-// A flat list of nine links in no order is the thing people get lost in.
+// A flat list of nine links in no order is the thing people get lost in. The names avoid
+// stock-room jargon: "Given out" rather than "dispense", "activity history" rather than "audit".
 const NAV: NavGroup[] = [
   {
-    label: "Day to day",
+    label: "Everyday",
     items: [
-      { label: "Dashboard", href: "/", Icon: IconDashboard, blurb: "What needs attention" },
-      { label: "Record", href: "/receive", Icon: IconReceive, blurb: "Receive, dispense, dispose, adjust" },
+      { label: "Home", href: "/", Icon: IconDashboard, blurb: "What needs attention today" },
+      { label: "Record stock", href: "/receive", Icon: IconReceive, blurb: "Received, given out, thrown away, corrected" },
     ],
   },
   {
     label: "Look things up",
     items: [
-      { label: "Stock", href: "/stock", Icon: IconStock, blurb: "Balances and batches" },
-      { label: "Expiry", href: "/expiry", Icon: IconExpiry, blurb: "What runs out soonest" },
-      { label: "Month end", href: "/month-end", Icon: IconMonthEnd, blurb: "Count and close" },
-      { label: "Items", href: "/items", Icon: IconItems, blurb: "The catalogue" },
+      { label: "Stock on hand", href: "/stock", Icon: IconStock, blurb: "How much is left" },
+      { label: "Expiry dates", href: "/expiry", Icon: IconExpiry, blurb: "What goes out of date soon" },
+      { label: "Month closing", href: "/month-end", Icon: IconMonthEnd, blurb: "Count the shelf and close the month" },
+      { label: "Item list", href: "/items", Icon: IconItems, blurb: "Everything the office keeps" },
     ],
   },
   {
-    label: "Admin",
+    label: "Manage",
     items: [
-      { label: "Workbook import", href: "/admin/import", Icon: IconImport, blurb: "The old spreadsheet", adminOnly: true },
-      { label: "Audit log", href: "/admin/audit", Icon: IconAudit, blurb: "Who changed what", adminOnly: true },
+      { label: "Old spreadsheet", href: "/admin/import", Icon: IconImport, blurb: "What came in from the old file", adminOnly: true },
+      { label: "Activity history", href: "/admin/audit", Icon: IconAudit, blurb: "Who did what, and when", adminOnly: true },
     ],
   },
   {
@@ -127,7 +128,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{user.name}</p>
             <p className="text-xs text-muted">
-              {user.role === "ADMIN" ? "Admin — can also edit and correct" : "Nurse — can record entries"}
+              {user.role === "ADMIN" ? "You can record and manage everything" : "You can record stock"}
             </p>
           </div>
         </div>

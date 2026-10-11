@@ -109,7 +109,7 @@ export function UsageTrendChart({ data }: { data: UsagePoint[] }) {
           )}
         />
         <Bar dataKey="received" name="Received" fill="var(--ok)" radius={[2, 2, 0, 0]} />
-        <Bar dataKey="dispensed" name="Dispensed" fill="var(--danger)" radius={[2, 2, 0, 0]} />
+        <Bar dataKey="dispensed" name="Given out" fill="var(--danger)" radius={[2, 2, 0, 0]} />
       </BarChart>
     </Frame>
   );
@@ -163,7 +163,7 @@ export function BalanceLineChart({
           <Line
             type="linear"
             dataKey="reorder"
-            name="Reorder at"
+            name="Refill at"
             stroke="var(--warn)"
             strokeWidth={1.5}
             strokeDasharray="4 3"
@@ -189,7 +189,7 @@ export interface TopUsedPoint {
  */
 export function TopUsedChart({ data }: { data: TopUsedPoint[] }) {
   if (data.length === 0) {
-    return <div className="py-10 text-center text-sm text-muted">Nothing has been dispensed yet this month.</div>;
+    return <div className="py-10 text-center text-sm text-muted">Nothing has been given out yet this month.</div>;
   }
   return (
     <div style={{ height: data.length * 28 + 30 }}>
@@ -212,7 +212,7 @@ export function TopUsedChart({ data }: { data: TopUsedPoint[] }) {
               <TooltipBox
                 active={active}
                 rows={(payload ?? []).map((p) => ({
-                  name: "Dispensed",
+                  name: "Given out",
                   value: String(p.value),
                   tone: p.color as string,
                 }))}

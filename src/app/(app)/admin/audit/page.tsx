@@ -35,6 +35,24 @@ const ACTIONS = [
   "month.reopen",
 ] as const;
 
+/** The raw action codes read like machine names; on screen they read like plain English. */
+const ACTION_LABEL: Record<string, string> = {
+  ALL: "All actions",
+  "transaction.receive": "Stock received",
+  "transaction.dispense": "Stock given out",
+  "transaction.adjust": "Correction",
+  "transaction.dispose": "Stock thrown away",
+  "transaction.opening": "Starting count",
+  "transaction.void": "Entry cancelled",
+  "item.create": "Item added",
+  "item.update": "Item changed",
+  "month.count": "Counts saved",
+  "month.close": "Month closed",
+  "month.reopen": "Month reopened",
+};
+
+const actionLabel = (action: string): string => ACTION_LABEL[action] ?? action;
+
 const PAGE = 100;
 
 /** Formats the JSON detail blob into something readable, since audit details are free-form. */
@@ -71,8 +89,8 @@ export default function AuditLogPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Audit log"
-        description="Every stock change, item edit and month action, with who did it and when. Entries are never edited or removed."
+        title="Activity history"
+        description="Every change to stock, items and months, with who did it and when. Nothing here is ever edited or removed."
       />
 
       <form
@@ -84,17 +102,17 @@ export default function AuditLogPage() {
         }}
       >
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="audit-action" className="text-sm font-medium">Action</label>
+          <label htmlFor="audit-action" className="text-sm font-medium">What happened</label>
           <Select id="audit-action" value={action} onChange={(e) => setAction(e.target.value)} className="w-52">
             {ACTIONS.map((a) => (
               <option key={a} value={a}>
-                {a === "ALL" ? "All actions" : a}
+                {actionLabel(a)}
               </option>
             ))}
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="audit-entity" className="text-sm font-medium">Item or entry</label>
+          <label htmlFor="audit-entity" className="text-sm font-medium">Item or month</label>
           <SearchInput
             id="audit-entity"
             value={entityId}
@@ -131,14 +149,14 @@ export default function AuditLogPage() {
 
       {entries.length > 0 ? (
         <>
-          <Panel title="Log" description="Newest first. Rows are colour-coded when something was reversed.">
+          <Panel title="History" description="Newest first. Rows in red are changes that reversed something.">
             <TableWrap className={cn(refreshing && "opacity-60")}>
               <thead>
                 <tr>
                   <th scope="col" className={thClass}>When</th>
                   <th scope="col" className={thClass}>Who</th>
-                  <th scope="col" className={thClass}>Action</th>
-                  <th scope="col" className={thClass}>Entity</th>
+                  <th scope="col" className={thClass}>What happened</th>
+                  <th scope="col" className={thClass}>Item or month</th>
                   <th scope="col" className={thClass}>Detail</th>
                 </tr>
               </thead>
@@ -153,11 +171,11 @@ export default function AuditLogPage() {
                       <td className="px-3 py-2.5 text-xs whitespace-nowrap">{e.userName ?? "—"}</td>
                       <td
                         className={cn(
-                          "px-3 py-2.5 font-mono text-xs whitespace-nowrap",
+                          "px-3 py-2.5 text-xs whitespace-nowrap",
                           dangerous && "font-medium text-danger",
                         )}
                       >
-                        {e.action}
+                        {actionLabel(e.action)}
                       </td>
                       <td className="px-3 py-2.5 font-mono text-xs">
                         {e.entity}
