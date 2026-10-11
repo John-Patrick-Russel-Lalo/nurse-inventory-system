@@ -121,6 +121,15 @@ export function IconHelp({ className }: IconProps) {
   );
 }
 
+export function IconSettings({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" className={cn(iconBox, className)} aria-hidden>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2.8v2.4M12 18.8v2.4M4.5 12H2M22 12h-2.5M6.1 6.1 4.4 4.4M19.6 19.6l-1.7-1.7M6.1 17.9l-1.7 1.7M19.6 4.4l-1.7 1.7" />
+    </svg>
+  );
+}
+
 export function IconDownload({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={cn("size-4 shrink-0", className)} aria-hidden>

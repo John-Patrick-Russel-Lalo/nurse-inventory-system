@@ -1,55 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { MODES, useTheme } from "./ThemeProvider";
 import { cn } from "./ui";
 
-type Theme = "light" | "dark" | "system";
-
-const ORDER: Theme[] = ["system", "light", "dark"];
-const LABEL: Record<Theme, string> = { system: "Auto", light: "Light", dark: "Dark" };
-
 /**
- * Light, dark, or follow the system. globals.css already reads `data-theme` on <html>, so
- * this only has to set that attribute and remember the choice.
+ * A quick light / dark / auto switch. The full set of colour themes lives on the Settings
+ * screen; this stays small because it sits in the sidebar of every page.
  */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("system");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("theme");
-    if (stored === "light" || stored === "dark" || stored === "system") setTheme(stored);
-  }, []);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "system") {
-      delete root.dataset.theme;
-    } else {
-      root.dataset.theme = theme;
-    }
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+  const { mode, setMode } = useTheme();
 
   return (
     <div
       className="flex items-center gap-0.5 rounded-xl border border-rule bg-surface p-0.5 shadow-card"
       role="group"
-      aria-label="Colour theme"
+      aria-label="Light or dark"
     >
-      {ORDER.map((option) => (
+      {MODES.map((option) => (
         <button
-          key={option}
+          key={option.value}
           type="button"
-          aria-pressed={theme === option}
-          onClick={() => setTheme(option)}
+          aria-pressed={mode === option.value}
+          onClick={() => setMode(option.value)}
           className={cn(
             "cursor-pointer rounded-lg px-2.5 py-1 text-xs transition-[background-color,color,box-shadow] duration-150",
-            theme === option
+            mode === option.value
               ? "bg-accent-soft font-semibold text-accent shadow-card"
               : "text-muted hover:text-fg",
           )}
         >
-          {LABEL[option]}
+          {option.label}
         </button>
       ))}
     </div>

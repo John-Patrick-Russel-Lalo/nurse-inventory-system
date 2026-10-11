@@ -15,6 +15,7 @@ import {
   IconItems,
   IconMonthEnd,
   IconReceive,
+  IconSettings,
   IconStock,
   cn,
 } from "./ui";
@@ -64,6 +65,12 @@ const NAV: NavGroup[] = [
     label: "Help",
     items: [
       { label: "How to use this", href: "/help", Icon: IconHelp, blurb: "A plain-language guide" },
+    ],
+  },
+  {
+    label: "Settings",
+    items: [
+      { label: "Appearance", href: "/settings", Icon: IconSettings, blurb: "Light, dark and colour" },
     ],
   },
 ];

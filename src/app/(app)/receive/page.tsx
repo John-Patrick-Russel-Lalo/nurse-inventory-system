@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { api, ApiError } from "@/lib/api";
-import type { AllocationResponse, ItemDetail, ItemSummary, MovementBody, MovementResult } from "@/lib/api-types";
+import { api } from "@/lib/api";
+import type { ItemDetail, ItemSummary, MovementBody, MovementResult } from "@/lib/api-types";
 import { CATEGORIES } from "@/lib/api-types";
 import { monthOf } from "@/lib/dates";
+import { allocateFefo } from "@/lib/stock";
 import { usePermissions } from "@/components/SessionProvider";
 import { ItemPicker } from "@/components/ItemPicker";
 import {
@@ -40,12 +41,12 @@ const TABS: { kind: Kind; label: string; blurb: string }[] = [
   {
     kind: "DISPENSE",
     label: "Given out",
-    blurb: "Medicine or supplies you handed out. The batch with the earliest expiry is used first.",
+    blurb: "Medicine or supplies you handed out. It suggests the batch that expires soonest, and you can change which batch it came from.",
   },
   {
     kind: "DISPOSE",
     label: "Thrown away",
-    blurb: "Stock you removed from the shelf because it expired, broke, or was recalled. Say why in the remarks.",
+    blurb: "Stock you removed because it expired, broke, or was recalled. Pick which batch it came from, and say why in the remarks.",
   },
   {
     kind: "ADJUST",
@@ -54,7 +55,7 @@ const TABS: { kind: Kind; label: string; blurb: string }[] = [
   },
 ];
 
-/** The editable version of the server's earliest-expiry-first suggestion. */
+/** One batch row in the "which batch" table, with the amount the nurse is taking from it. */
 interface Line {
   batchId: number;
   qty: number;
@@ -75,7 +76,7 @@ export default function ReceivePage() {
   const [lot, setLot] = useState("");
   const [batchId, setBatchId] = useState("");
   const [adjustQty, setAdjustQty] = useState("");
-  const [lines, setLines] = useState<Line[]>();
+  const [manual, setManual] = useState<Record<number, number>>({});
   const [edited, setEdited] = useState(false);
   const [date, setDate] = useState(today);
   const [source, setSource] = useState("");
@@ -133,7 +134,7 @@ export default function ReceivePage() {
     setLot("");
     setBatchId("");
     setAdjustQty("");
-    setLines(undefined);
+    setManual({});
     setEdited(false);
     setResult(undefined);
     setError(undefined);
@@ -147,16 +148,16 @@ export default function ReceivePage() {
     if (match) setKind(match.kind);
   }, []);
 
-  // Load the item's batches: the ADJUST tab picks one directly, the others suggest a split.
+  // Load the item's batches: the ADJUST tab picks one directly; the others list every usable batch.
   useEffect(() => {
     if (!item || kind === "RECEIVE") {
       setDetail(undefined);
-      setLines(undefined);
+      setManual({});
       return;
     }
     let live = true;
     setDetail(undefined);
-    setLines(undefined);
+    setManual({});
     setEdited(false);
     api
       .item(item.id)
@@ -167,48 +168,53 @@ export default function ReceivePage() {
     };
   }, [item, kind]);
 
-  // Ask the server how it would split this quantity, whenever the item or quantity changes.
+  // A new quantity starts the split fresh from earliest-expiry-first.
   useEffect(() => {
-    if (!item || kind === "RECEIVE" || kind === "ADJUST" || !Number.isInteger(amount) || amount <= 0) {
-      setLines(undefined);
-      return;
-    }
-    let live = true;
-    const timer = setTimeout(() => {
-      api
-        .allocate({ itemId: item.id, qty: amount })
-        .then((r: AllocationResponse) => {
-          if (!live) return;
-          setEdited(false);
-          setLines(
-            r.allocations.map((a) => ({
-              batchId: a.batchId,
-              qty: a.qty,
-              expiry: a.expiry,
-              label: a.label,
-              balance: a.balance,
-            })),
-          );
-        })
-        .catch((e) => {
-          if (!live) return;
-          // Out of stock and friends: show the problem, drop the stale suggestion.
-          setLines(undefined);
-          setError(e instanceof ApiError && e.code === "INSUFFICIENT_STOCK" ? e.message : undefined);
-        });
-    }, 200);
-    return () => {
-      live = false;
-      clearTimeout(timer);
-    };
-  }, [item, amount, kind]);
+    setEdited(false);
+    setManual({});
+  }, [amount]);
 
+  // Every batch that still holds stock and is not expired, earliest expiry first — the order the
+  // nurse would reach for them in. Expired batches are kept to the side so they are never used.
   const liveBatches = detail?.batches.filter((b) => b.balance > 0) ?? [];
-  const usable = liveBatches.filter((b) => b.expiryStatus !== "EXPIRED");
+  const usableBatches = liveBatches
+    .filter((b) => b.expiryStatus !== "EXPIRED")
+    .sort((a, b) => {
+      if (a.expiry === b.expiry) return a.id - b.id;
+      if (a.expiry === null) return 1;
+      if (b.expiry === null) return -1;
+      return a.expiry < b.expiry ? -1 : 1;
+    });
   const expiredBatches = liveBatches.filter((b) => b.expiryStatus === "EXPIRED");
+  const usableTotal = usableBatches.reduce((s, b) => s + b.balance, 0);
 
-  const lineTotal = lines?.reduce((s, l) => s + l.qty, 0) ?? 0;
-  const isSplit = (lines?.length ?? 0) > 1;
+  // The earliest-expiry-first suggestion for this amount, as a batchId -> quantity map. Null when
+  // there is nothing to suggest (no amount yet, or not enough usable stock).
+  const suggested = useMemo(() => {
+    if (!Number.isInteger(amount) || amount <= 0 || amount > usableTotal) return null;
+    const split = allocateFefo(
+      usableBatches.map((b) => ({ batchId: b.id, expiry: b.expiry, balance: b.balance })),
+      amount,
+      today,
+    );
+    const out: Record<number, number> = {};
+    for (const line of split) out[line.batchId] = line.qty;
+    return out;
+  }, [usableBatches, usableTotal, amount, today]);
+
+  // One row per usable batch: the typed split once the nurse has changed it, otherwise the
+  // earliest-expiry-first suggestion.
+  const amounts = edited ? manual : (suggested ?? {});
+  const lineViews: Line[] = usableBatches.map((b) => ({
+    batchId: b.id,
+    qty: amounts[b.id] ?? 0,
+    expiry: b.expiry,
+    label: b.label,
+    balance: b.balance,
+  }));
+  const lineTotal = lineViews.reduce((s, l) => s + l.qty, 0);
+  const isSplit = lineViews.filter((l) => l.qty > 0).length > 1;
+  const shortOfStock = Number.isInteger(amount) && amount > 0 && amount > usableTotal;
 
   const reset = () => {
     setItem(undefined);
@@ -217,7 +223,8 @@ export default function ReceivePage() {
     setLot("");
     setBatchId("");
     setAdjustQty("");
-    setLines(undefined);
+    setManual({});
+    setEdited(false);
     setSource("");
     setRemarks("");
     setDate(today);
@@ -253,7 +260,9 @@ export default function ReceivePage() {
       body = { type: "ADJUST", itemId: item.id, qty: delta, batchId: Number(batchId), date, source: source || null, remarks: remarks || null };
     } else {
       if (!Number.isInteger(amount) || amount <= 0) return setError("Enter a whole quantity above zero.");
-      // Only send a manual split when one was actually made; otherwise let the server decide.
+      // Only send a manual split when one was actually made; otherwise let the rules take the
+      // earliest expiry first.
+      const chosen = lineViews.filter((l) => l.qty > 0);
       body = {
         type: kind,
         itemId: item.id,
@@ -261,7 +270,7 @@ export default function ReceivePage() {
         date,
         source: source || null,
         remarks: remarks || null,
-        ...(edited && lines?.length ? { allocations: lines.map((l) => ({ batchId: l.batchId, qty: l.qty })) } : {}),
+        ...(edited && chosen.length ? { allocations: chosen.map((l) => ({ batchId: l.batchId, qty: l.qty })) } : {}),
       };
     }
 
@@ -274,7 +283,8 @@ export default function ReceivePage() {
       setExpiry("");
       setLot("");
       setAdjustQty("");
-      setLines(undefined);
+      setManual({});
+      setEdited(false);
       setRemarks("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not record the entry.");
@@ -315,7 +325,7 @@ export default function ReceivePage() {
               setKind(t.kind);
               setError(undefined);
               setResult(undefined);
-              setLines(undefined);
+              setManual({});
               setEdited(false);
             }}
             className={cn(
@@ -392,7 +402,7 @@ export default function ReceivePage() {
                   <Field label="Batch" htmlFor="batch" hint="Only batches that still hold stock.">
                     <Select id="batch" value={batchId} onChange={(e) => setBatchId(e.target.value)} required>
                       <option value="">Choose a batch…</option>
-                      {usable.map((b) => (
+                      {usableBatches.map((b) => (
                         <option key={b.id} value={b.id}>
                           #{b.id} · {b.expiry ?? "no expiry"} · {b.balance} on hand
                         </option>
@@ -421,8 +431,8 @@ export default function ReceivePage() {
                           ? `How many arrived? In ${item.unit}. Whole numbers only.`
                           : "How many arrived? Whole numbers only."
                         : item.unit
-                          ? `How many? In ${item.unit}. Available: ${usable.reduce((s, b) => s + b.balance, 0)}.`
-                          : `How many? Available: ${usable.reduce((s, b) => s + b.balance, 0)}.`
+                          ? `How many? In ${item.unit}. Available: ${usableTotal}.`
+                          : `How many? Available: ${usableTotal}.`
                     }
                   >
                     <Input
@@ -485,24 +495,28 @@ export default function ReceivePage() {
           </Panel>
         ) : null}
 
-        {(kind === "DISPENSE" || kind === "DISPOSE") && item && amount > 0 && usable.length > 0 ? (
+        {(kind === "DISPENSE" || kind === "DISPOSE") && item && amount > 0 && usableBatches.length > 0 ? (
           <Panel
-            title="3. Which batches does it come from?"
+            title="3. Which batch does it come from?"
             description={
-              isSplit
-                ? "This amount is more than one batch holds, so it is split across batches. Check the split before saving."
-                : "One batch covers this amount, so there is nothing to choose."
+              shortOfStock
+                ? `This amount is more than the ${usableTotal} usable on the shelf. Lower the quantity, or record the missing stock first.`
+                : usableBatches.length === 1
+                  ? "This item has one batch, so the amount comes from it. Change it if you did not take all of it from this batch."
+                  : isSplit
+                    ? "This amount is more than one batch holds, so it comes from more than one. Check the amounts before saving."
+                    : "Suggested from the batch that expires soonest. Change any amount if you took it from a different batch."
             }
             className="max-w-3xl"
             actions={
-              isSplit && edited ? (
+              edited ? (
                 <Button
                   type="button"
                   variant="plain"
                   size="sm"
                   onClick={() => {
                     setEdited(false);
-                    setLines(undefined);
+                    setManual({});
                   }}
                 >
                   Use earliest expiry first
@@ -510,75 +524,72 @@ export default function ReceivePage() {
               ) : undefined
             }
           >
-            {lines ? (
-              <>
-                <TableWrap className="shadow-none">
-                  <thead>
-                    <tr>
-                      <th scope="col" className={thClass}>Batch</th>
-                      <th scope="col" className={thClass}>Expiry</th>
-                      <th scope="col" className={thRightClass}>On hand</th>
-                      <th scope="col" className={thRightClass}>Taking</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lines.map((line) => (
-                      <tr key={line.batchId} className={rowClass}>
-                        <td className="px-3 py-2 font-mono text-xs">
-                          #{line.batchId}
-                          {line.label ? <span className="ml-1 text-muted">{line.label}</span> : null}
-                        </td>
-                        <td className="px-3 py-2 font-mono text-xs">{line.expiry ?? "no expiry"}</td>
-                        <td className="px-3 py-2 text-right font-mono text-muted">{line.balance}</td>
-                        <td className="px-3 py-2 text-right">
-                          <Input
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={line.qty}
-                            aria-label={`Quantity from batch ${line.batchId}`}
-                            onChange={(e) => {
-                              const next = Number(e.target.value);
-                              setEdited(true);
-                              // A line taken down to zero is dropped: the server only accepts
-                              // positive batch quantities, and the row can be retyped if needed.
-                              setLines(
-                                (lines ?? [])
-                                  .map((l) => (l.batchId === line.batchId ? { ...l, qty: next } : l))
-                                  .filter((l) => Number.isInteger(l.qty) && l.qty > 0),
-                              );
-                            }}
-                            className="w-20 text-right font-mono"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-rule bg-surface-2">
-                      <td className="px-3 py-2 text-xs text-muted" colSpan={3}>
-                        {edited ? "Your split" : "Earliest expiry first"}
-                      </td>
-                      <td
-                        className={cn(
-                          "px-3 py-2 text-right font-mono font-semibold",
-                          edited && lineTotal !== amount ? "text-danger" : "",
-                        )}
-                      >
-                        {lineTotal} / {amount}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </TableWrap>
-                {edited && lineTotal !== amount ? (
-                  <Alert tone="error" className="mt-3">
-                    The batch quantities must add up to {amount} before this can be saved.
-                  </Alert>
-                ) : null}
-              </>
-            ) : (
-              <p className="text-sm text-muted">Working out the batches…</p>
-            )}
+            <TableWrap className="shadow-none">
+              <thead>
+                <tr>
+                  <th scope="col" className={thClass}>Batch</th>
+                  <th scope="col" className={thClass}>Expiry</th>
+                  <th scope="col" className={thRightClass}>On hand</th>
+                  <th scope="col" className={thRightClass}>Taking</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineViews.map((line) => (
+                  <tr key={line.batchId} className={rowClass}>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      #{line.batchId}
+                      {line.label ? <span className="ml-1 text-muted">{line.label}</span> : null}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">{line.expiry ?? "no expiry"}</td>
+                    <td className="px-3 py-2 text-right font-mono text-muted">{line.balance}</td>
+                    <td className="px-3 py-2 text-right">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={line.balance}
+                        step={1}
+                        value={line.qty}
+                        aria-label={`Quantity from batch ${line.batchId}`}
+                        onChange={(e) => {
+                          const next = e.target.value === "" ? 0 : Number(e.target.value);
+                          setEdited(true);
+                          // Zeros are kept so the amount can be moved from one batch to another.
+                          setManual(() => {
+                            const base: Record<number, number> = {};
+                            for (const l of lineViews) base[l.batchId] = l.qty;
+                            base[line.batchId] = Number.isFinite(next) ? next : 0;
+                            return base;
+                          });
+                        }}
+                        className="w-20 text-right font-mono"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-rule bg-surface-2">
+                  <td className="px-3 py-2 text-xs text-muted" colSpan={3}>
+                    {edited ? "Your split" : "Earliest expiry first"}
+                  </td>
+                  <td
+                    className={cn(
+                      "px-3 py-2 text-right font-mono font-semibold",
+                      lineTotal !== amount ? "text-danger" : "",
+                    )}
+                  >
+                    {lineTotal} / {amount}
+                  </td>
+                </tr>
+              </tfoot>
+            </TableWrap>
+            {lineTotal !== amount ? (
+              <Alert tone={shortOfStock ? "error" : "warn"} className="mt-3">
+                {shortOfStock
+                  ? `Only ${usableTotal} usable in stock, but ${amount} was asked for.`
+                  : `The batch amounts must add up to ${amount}. They currently add up to ${lineTotal}.`}
+              </Alert>
+            ) : null}
           </Panel>
         ) : null}
 
@@ -604,7 +615,8 @@ export default function ReceivePage() {
               busy ||
               !item ||
               monthClosed ||
-              ((kind === "DISPENSE" || kind === "DISPOSE") && edited && lineTotal !== amount)
+              ((kind === "DISPENSE" || kind === "DISPOSE") &&
+                (shortOfStock || (edited && lineTotal !== amount)))
             }
           >
             {busy ? "Saving…" : saveLabel}
@@ -628,9 +640,9 @@ export default function ReceivePage() {
       ) : (
         <Panel title="What the system does for you" className="max-w-2xl">
           <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted marker:text-rule">
-            <li>Stock is given out from the batch that expires soonest first, so nothing old is left behind.</li>
-            <li>It only splits across batches when one batch is not enough.</li>
-            <li>Expired stock and empty batches are never handed out automatically.</li>
+            <li>It suggests the batch that expires soonest first, so nothing old is left behind.</li>
+            <li>You can change which batch the amount comes from, and split it across batches if you need to.</li>
+            <li>Expired stock is never handed out, and is never suggested.</li>
             <li>Stock can never go below zero, so the last unit cannot be handed out twice.</li>
           </ul>
         </Panel>
