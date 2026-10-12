@@ -9,7 +9,7 @@ import type {
   SyncSnapshot,
   SyncTransaction,
 } from "@/lib/api-types";
-import { clear, del, getAll, getOne, put, putMany, STORES } from "./idb";
+import { clear, del, deleteKeysExcept, getAll, getOne, put, putMany, STORES } from "./idb";
 
 export interface CachedSession {
   user: { id: number; name: string; email: string; role: Role };
@@ -57,9 +57,15 @@ export const store = {
   },
 
   async saveSnapshot(snapshot: SyncSnapshot): Promise<void> {
+    // The snapshot is the server's whole working set, so after writing it the mirror is made to
+    // match exactly: rows the server no longer has (a deleted item, its batches and entries) are
+    // dropped rather than kept as stale copies.
     await putMany(STORES.items, snapshot.items);
+    await deleteKeysExcept(STORES.items, snapshot.items.map((i) => i.id));
     await putMany(STORES.batches, snapshot.batches);
+    await deleteKeysExcept(STORES.batches, snapshot.batches.map((b) => b.id));
     await putMany(STORES.transactions, snapshot.transactions);
+    await deleteKeysExcept(STORES.transactions, snapshot.transactions.map((t) => t.id));
     await this.saveSession({
       user: snapshot.user,
       today: snapshot.today,

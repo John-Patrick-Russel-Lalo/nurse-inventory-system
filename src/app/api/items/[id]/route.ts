@@ -1,6 +1,6 @@
 import { context } from "@/server/context";
 import { handle } from "@/server/http";
-import { updateItem } from "@/server/items";
+import { deleteItem, updateItem } from "@/server/items";
 import { getItem } from "@/server/inventory";
 import { itemPatchSchema } from "@/server/schemas";
 
@@ -24,5 +24,15 @@ export async function PATCH(request: Request, { params }: Params) {
     const { id } = await params;
     const patch = itemPatchSchema.parse(await request.json());
     return { item: await updateItem(ctx, id, patch) };
+  });
+}
+
+/** DELETE /api/items/MED-001  (admin) — removes the item, its batches, entries and month counts. */
+export async function DELETE(_request: Request, { params }: Params) {
+  return handle(async () => {
+    const ctx = await context();
+    const { id } = await params;
+    await deleteItem(ctx, id);
+    return { ok: true };
   });
 }

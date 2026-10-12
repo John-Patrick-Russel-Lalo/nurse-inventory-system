@@ -77,6 +77,30 @@ export async function updateItem(ctx: Ctx, id: string, patch: ItemPatchBody): Pr
   return updated;
 }
 
+/**
+ * Deletes an item and everything that belongs to it. Admin only.
+ *
+ * Stock is never deleted under the covers anywhere else, but a stale item has no place in the
+ * catalogue, so this removes the item, its batches and every entry against them, and its month
+ * counts, all in one transaction. The audit log keeps the name, so a deletion is never silent.
+ */
+export async function deleteItem(ctx: Ctx, id: string): Promise<void> {
+  if (ctx.user.role !== "ADMIN") throw ApiError.forbidden("Only an admin can delete an item.");
+
+  const gone = await db.item.findUnique({ where: { id }, select: { id: true, name: true, category: true } });
+  if (!gone) throw ApiError.notFound(`No item with ID "${id}".`);
+
+  await db.$transaction(async (tx) => {
+    // Children first: batches and counts hold foreign keys back to the item, and the entries
+    // hold keys to the batches, so they have to go in reverse order of the references.
+    await tx.transaction.deleteMany({ where: { itemId: id } });
+    await tx.batch.deleteMany({ where: { itemId: id } });
+    await tx.monthClosing.deleteMany({ where: { itemId: id } });
+    await tx.item.delete({ where: { id } });
+    await audit(tx, ctx, "item.delete", "item", id, { name: gone.name, category: gone.category });
+  });
+}
+
 /** The next free ID in a category's block, e.g. MED-152 for the MEDICINE category. */
 async function nextItemId(category: Category): Promise<string> {
   const prefix = CATEGORY_PREFIX[category];

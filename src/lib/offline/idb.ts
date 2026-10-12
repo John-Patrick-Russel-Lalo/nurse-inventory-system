@@ -79,6 +79,27 @@ export async function del(store: StoreName, key: IDBValidKey): Promise<void> {
   await done(tx);
 }
 
+/**
+ * Removes every row in the store whose key is not in `keep`. This is what lets the mirror
+ * drop things the server no longer has (a deleted item, its batches and entries) instead of
+ * keeping stale copies forever. The keys are read and the deletes issued inside one
+ * transaction, so the store either ends exactly matching `keep` or is left untouched.
+ */
+export async function deleteKeysExcept(store: StoreName, keep: readonly IDBValidKey[]): Promise<void> {
+  const db = await openDb();
+  const tx = db.transaction(store, "readwrite");
+  const objectStore = tx.objectStore(store);
+  const keepSet = new Set(keep);
+  const keys = objectStore.getAllKeys();
+  keys.onsuccess = () => {
+    for (const key of keys.result) {
+      if (!keepSet.has(key)) objectStore.delete(key);
+    }
+  };
+  keys.onerror = () => tx.abort();
+  await done(tx);
+}
+
 export async function clear(store: StoreName): Promise<void> {
   const db = await openDb();
   const tx = db.transaction(store, "readwrite");

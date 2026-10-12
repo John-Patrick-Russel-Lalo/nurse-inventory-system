@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { CATEGORIES, type Category, type ItemPatchBody } from "@/lib/api-types";
@@ -202,6 +202,7 @@ function EditItemPanel({
   };
   onSaved: () => void;
 }) {
+  const router = useRouter();
   const [form, setForm] = useState<{
     name: string;
     variant: string;
@@ -220,6 +221,21 @@ function EditItemPanel({
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    setDeleting(true);
+    setError(undefined);
+    try {
+      await api.deleteItem(itemId);
+      router.replace("/items");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete the item.");
+      setDeleting(false);
+      setConfirming(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,6 +325,31 @@ function EditItemPanel({
             {busy ? "Saving…" : "Save changes"}
           </Button>
           <span className="text-xs text-muted">Saved straight to the Activity history.</span>
+        </div>
+
+        <div className="mt-2 border-t border-rule pt-4">
+          <p className="text-sm font-medium text-danger">Delete this item</p>
+          <p className="mt-0.5 text-xs text-muted">
+            Removes {current.name} and every batch and entry recorded against it. This cannot be undone;
+            the deletion is the only trace left behind. Deactivating instead keeps the history.
+          </p>
+          {confirming ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <p className="w-full text-sm font-medium text-danger">
+                Really delete {itemId} permanently?
+              </p>
+              <Button variant="danger" size="md" onClick={() => void confirmDelete()} disabled={deleting}>
+                {deleting ? "Deleting…" : "Yes, delete it"}
+              </Button>
+              <Button type="button" variant="plain" size="md" onClick={() => setConfirming(false)} disabled={deleting}>
+                Keep it
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" variant="danger" size="md" className="mt-3" onClick={() => setConfirming(true)}>
+              Delete item
+            </Button>
+          )}
         </div>
       </form>
     </Panel>
