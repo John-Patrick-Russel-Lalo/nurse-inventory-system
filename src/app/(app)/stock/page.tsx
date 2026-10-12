@@ -6,6 +6,7 @@ import { api, downloadUrls } from "@/lib/api";
 import { CATEGORIES } from "@/lib/api-types";
 import { useApi } from "@/lib/use-api";
 import { DownloadButton } from "@/components/DownloadButton";
+import { Pagination, usePaging } from "@/components/Pagination";
 import {
   Card,
   Checkbox,
@@ -39,6 +40,9 @@ export default function StockPage() {
     () => api.stock({ q, category, lowOnly }),
     [q, category, lowOnly],
   );
+
+  // A new search, category or filter starts again from the first page.
+  const stockPage = usePaging(data?.rows ?? [], 10, `${q}|${category}|${lowOnly}`);
 
   return (
     <div className="flex flex-col gap-6">
@@ -121,7 +125,8 @@ export default function StockPage() {
                 hint="Clear the search, widen the category, or turn off “Low stock only”."
               />
             ) : (
-              <TableWrap className={cn(refreshing && "opacity-60")}>
+              <>
+                <TableWrap className={cn(refreshing && "opacity-60")}>
                 <thead>
                   <tr>
                     <th scope="col" className={thClass}>Item</th>
@@ -133,7 +138,7 @@ export default function StockPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map(({ item, batches }) => {
+                  {stockPage.rows.map(({ item, batches }) => {
                     const open = expanded === item.id;
                     return (
                       <Fragment key={item.id}>
@@ -212,6 +217,13 @@ export default function StockPage() {
                   })}
                 </tbody>
               </TableWrap>
+              <Pagination
+                total={data.rows.length}
+                page={stockPage.page}
+                pageSize={stockPage.pageSize}
+                onPage={stockPage.setPage}
+              />
+              </>
             )}
           </Panel>
         </>

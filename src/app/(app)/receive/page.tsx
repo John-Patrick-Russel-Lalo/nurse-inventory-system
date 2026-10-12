@@ -9,6 +9,7 @@ import { allocateFefo } from "@/lib/stock";
 import { usePermissions } from "@/components/SessionProvider";
 import { useFocusMode } from "@/components/FocusMode";
 import { ItemPicker } from "@/components/ItemPicker";
+import { Pagination, usePaging } from "@/components/Pagination";
 import {
   Alert,
   Button,
@@ -89,7 +90,6 @@ export default function ReceivePage() {
   const [allItems, setAllItems] = useState<ItemSummary[]>();
   const [listQuery, setListQuery] = useState("");
   const [listCategory, setListCategory] = useState("ALL");
-  const [page, setPage] = useState(0);
 
   const amount = Number(qty);
   const monthClosed = closedMonths.includes(monthOf(date));
@@ -117,16 +117,8 @@ export default function ReceivePage() {
   }, [allItems, listQuery, listCategory]);
 
   // Ten to a page: a long catalogue reads better in small pages than one long scroll.
-  const pageSize = 10;
-  const pageCount = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-  const safePage = Math.min(page, pageCount - 1);
-  const pageStart = safePage * pageSize;
-  const pageItems = filteredItems.slice(pageStart, pageStart + pageSize);
-
-  // A new search or category starts again from the first page.
-  useEffect(() => {
-    setPage(0);
-  }, [listQuery, listCategory]);
+  const listPage = usePaging(filteredItems, 10, `${listQuery}|${listCategory}`);
+  const pageItems = listPage.rows;
 
   // Choosing from the overview table fills the form above and clears whatever was half-typed.
   const choose = (picked: ItemSummary) => {
@@ -767,34 +759,12 @@ export default function ReceivePage() {
               </tbody>
             </TableWrap>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted">
-                Showing {pageStart + 1}–{Math.min(pageStart + pageSize, filteredItems.length)} of {filteredItems.length}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="plain"
-                  size="md"
-                  onClick={() => setPage(safePage - 1)}
-                  disabled={safePage === 0}
-                >
-                  ← Back
-                </Button>
-                <span className="text-sm text-muted">
-                  Page {safePage + 1} of {pageCount}
-                </span>
-                <Button
-                  type="button"
-                  variant="plain"
-                  size="md"
-                  onClick={() => setPage(safePage + 1)}
-                  disabled={safePage >= pageCount - 1}
-                >
-                  Next →
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              total={filteredItems.length}
+              page={listPage.page}
+              pageSize={listPage.pageSize}
+              onPage={listPage.setPage}
+            />
           </>
         )}
       </Panel>

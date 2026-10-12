@@ -4,7 +4,27 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { rememberCredential, verifyOffline } from "@/lib/offline";
-import { Alert, Button, Field, Input } from "@/components/ui";
+import { Alert, Button, Field, Input, IconEye, IconEyeOff, cn } from "@/components/ui";
+
+/** A password field with a Show/Hide button inside it, so nobody has to type blind. */
+function PasswordInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { className, ...rest } = props;
+  const [show, setShow] = useState(false);
+  return (
+    <span className="relative block">
+      <Input {...rest} type={show ? "text" : "password"} className={cn("pr-11", className)} />
+      <button
+        type="button"
+        aria-label={show ? "Hide password" : "Show password"}
+        aria-pressed={show}
+        onClick={() => setShow((v) => !v)}
+        className="absolute top-1/2 right-2 grid size-7 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+      >
+        {show ? <IconEyeOff /> : <IconEye />}
+      </button>
+    </span>
+  );
+}
 
 export function LoginForm() {
   const router = useRouter();
@@ -57,10 +77,9 @@ export function LoginForm() {
         />
       </Field>
       <Field label="Password" htmlFor="password">
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           required
         />

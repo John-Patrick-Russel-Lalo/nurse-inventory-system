@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
+import { Pagination } from "@/components/Pagination";
 import {
   Alert,
   Button,
@@ -189,19 +190,12 @@ export default function AuditLogPage() {
             </TableWrap>
           </Panel>
 
-          <div className="flex items-center gap-2">
-            <Button variant="plain" size="md" onClick={() => setOffset((o) => Math.max(0, o - PAGE))} disabled={offset === 0}>
-              ← Newer
-            </Button>
-            <Button
-              variant="plain"
-              size="md"
-              onClick={() => setOffset((o) => o + PAGE)}
-              disabled={!data || offset + PAGE >= data.total}
-            >
-              Older →
-            </Button>
-          </div>
+          <Pagination
+            total={data?.total ?? 0}
+            page={Math.floor(offset / PAGE)}
+            pageSize={PAGE}
+            onPage={(p) => setOffset(p * PAGE)}
+          />
         </>
       ) : null}
 

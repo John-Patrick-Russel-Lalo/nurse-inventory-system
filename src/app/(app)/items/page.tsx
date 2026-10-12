@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { CATEGORIES, type Category, type ItemCreateBody } from "@/lib/api-types";
+import { CATEGORIES, CATEGORY_PREFIX, formatItemId, type Category, type ItemCreateBody } from "@/lib/api-types";
 import { useApi } from "@/lib/use-api";
 import { usePermissions } from "@/components/SessionProvider";
+import { Pagination, usePaging } from "@/components/Pagination";
 import {
   Alert,
   Button,
@@ -46,6 +47,9 @@ export default function ItemsPage() {
   const rows = data?.items ?? [];
   const missingUnit = rows.filter((i) => !i.unit).length;
   const missingLevel = rows.filter((i) => i.reorderLevel === null).length;
+
+  // A new search, category or filter starts again from the first page.
+  const itemsPage = usePaging(rows, 10, `${q}|${category}|${includeInactive}`);
 
   return (
     <div className="flex flex-col gap-6">
@@ -126,7 +130,8 @@ export default function ItemsPage() {
             action={isAdmin ? <Button onClick={() => setCreating(true)}>Add item</Button> : undefined}
           />
         ) : (
-          <TableWrap className={cn(refreshing && "opacity-60")}>
+          <>
+            <TableWrap className={cn(refreshing && "opacity-60")}>
             <thead>
               <tr>
                 <th scope="col" className={thClass}>ID</th>
@@ -138,7 +143,7 @@ export default function ItemsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((item) => (
+              {itemsPage.rows.map((item) => (
                 <tr key={item.id} className={cn(rowClass, !item.active && "opacity-60")}>
                   <td className="px-3 py-2.5">
                     <Link href={`/items/${item.id}`} className={cn(linkClass, "font-mono text-xs")}>
@@ -165,6 +170,8 @@ export default function ItemsPage() {
               ))}
             </tbody>
           </TableWrap>
+          <Pagination total={rows.length} page={itemsPage.page} pageSize={itemsPage.pageSize} onPage={itemsPage.setPage} />
+          </>
         )}
       </Panel>
 
@@ -177,6 +184,24 @@ function NewItemDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [form, setForm] = useState<ItemCreateBody>({ name: "", category: "MEDICINE" });
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [idHint, setIdHint] = useState("…");
+
+  // The server assigns the next free number in the category's block, so mirror that here as a preview.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .items({ includeInactive: true })
+      .then(({ items }) => {
+        if (cancelled) return;
+        setIdHint(nextItemIdFor(form.category, items.map((i) => i.id)));
+      })
+      .catch(() => {
+        if (!cancelled) setIdHint("—");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.category]);
 
   const set = <K extends keyof ItemCreateBody>(key: K, value: ItemCreateBody[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -201,7 +226,7 @@ function NewItemDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       <form onSubmit={submit} className="w-full max-w-md rounded-2xl border border-rule bg-surface p-6 shadow-float">
         <h2 id="new-item-title" className="text-lg font-semibold">Add an item</h2>
         <p className="mt-1 text-sm text-muted">
-          Leave the ID empty and the next number is filled in for you.
+          The ID is the next free number for the category, so there is nothing to type.
         </p>
 
         <div className="mt-5 flex flex-col gap-3.5">
@@ -236,8 +261,8 @@ function NewItemDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="ID" htmlFor="new-id" hint="e.g. MED-152.">
-              <Input id="new-id" value={form.id ?? ""} onChange={(e) => set("id", e.target.value)} />
+            <Field label="ID" htmlFor="new-id" hint="Assigned automatically.">
+              <Input id="new-id" value={idHint} readOnly />
             </Field>
             <Field label="Refill level" htmlFor="new-level" hint="Blank or 0 to turn it off.">
               <Input
@@ -265,4 +290,16 @@ function NewItemDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       </form>
     </div>
   );
+}
+
+/** The next free ID in a category's block, e.g. MED-152, mirroring the server's rule. */
+function nextItemIdFor(category: Category, ids: string[]): string {
+  const prefix = CATEGORY_PREFIX[category];
+  const re = new RegExp(`^${prefix}-(\\d+)$`);
+  let max = 0;
+  for (const id of ids) {
+    const m = re.exec(id);
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  return formatItemId(category, max + 1);
 }

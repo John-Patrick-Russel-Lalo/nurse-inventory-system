@@ -6,6 +6,21 @@ export type Role = "NURSE" | "ADMIN";
 export const CATEGORIES = ["MEDICINE", "SUPPLY", "EQUIPMENT", "TOPICAL", "SOLUTION", "MISC"] as const;
 export type Category = (typeof CATEGORIES)[number];
 
+/** The ID prefix each category uses, so MEDICINE items read MED-###. Matches the workbook. */
+export const CATEGORY_PREFIX: Record<Category, string> = {
+  MEDICINE: "MED",
+  SUPPLY: "SUP",
+  EQUIPMENT: "EQP",
+  TOPICAL: "TOP",
+  SOLUTION: "SOL",
+  MISC: "MSC",
+};
+
+/** Applies the category's prefix to a number, e.g. "MED" + 1 → "MED-001". */
+export function formatItemId(category: Category, n: number): string {
+  return `${CATEGORY_PREFIX[category]}-${String(n).padStart(3, "0")}`;
+}
+
 export const TX_TYPES = ["OPENING", "RECEIVE", "DISPENSE", "ADJUST", "DISPOSE"] as const;
 export type TxType = (typeof TX_TYPES)[number];
 
@@ -268,7 +283,6 @@ export interface ItemPatchBody {
 }
 
 export interface ItemCreateBody {
-  id?: string;
   name: string;
   variant?: string | null;
   category: Category;

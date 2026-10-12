@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import type { ExpiryRow } from "@/lib/api-types";
 import { useApi } from "@/lib/use-api";
 import { usePermissions } from "@/components/SessionProvider";
+import { Pagination, usePaging } from "@/components/Pagination";
 import {
   Button,
   EmptyState,
@@ -109,40 +110,44 @@ export default function ExpiryPage() {
 }
 
 function BatchTable({ rows }: { rows: ExpiryRow[] }) {
+  const page = usePaging(rows, 10);
   return (
-    <TableWrap>
-      <thead>
-        <tr>
-          <th scope="col" className={thClass}>Item and batch</th>
-          <th scope="col" className={thClass}>Expiry</th>
-          <th scope="col" className={thRightClass}>Days left</th>
-          <th scope="col" className={thClass}>Status</th>
-          <th scope="col" className={thRightClass}>On hand</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.batchId} className={rowClass}>
-            <td className="px-3 py-2.5">
-              <Link href={`/items/${r.itemId}`} className={linkClass}>
-                {r.itemName}
-              </Link>
-              {r.variant ? <span className="text-muted"> · {r.variant}</span> : null}
-              <span className="ml-2 font-mono text-xs text-muted">
-                #{r.batchId}
-                {r.batchLabel ? ` ${r.batchLabel}` : ""}
-              </span>
-            </td>
-            <td className="px-3 py-2.5 font-mono text-sm whitespace-nowrap">{r.expiry}</td>
-            <td className="px-3 py-2.5 text-right font-mono">{r.daysToExpiry}</td>
-            <td className="px-3 py-2.5"><ExpiryBadge status={r.status} /></td>
-            <td className="px-3 py-2.5 text-right font-mono font-medium">
-              {r.balance}
-              {r.unit ? <span className="text-muted"> {r.unit}</span> : null}
-            </td>
+    <>
+      <TableWrap>
+        <thead>
+          <tr>
+            <th scope="col" className={thClass}>Item and batch</th>
+            <th scope="col" className={thClass}>Expiry</th>
+            <th scope="col" className={thRightClass}>Days left</th>
+            <th scope="col" className={thClass}>Status</th>
+            <th scope="col" className={thRightClass}>On hand</th>
           </tr>
-        ))}
-      </tbody>
-    </TableWrap>
+        </thead>
+        <tbody>
+          {page.rows.map((r) => (
+            <tr key={r.batchId} className={rowClass}>
+              <td className="px-3 py-2.5">
+                <Link href={`/items/${r.itemId}`} className={linkClass}>
+                  {r.itemName}
+                </Link>
+                {r.variant ? <span className="text-muted"> · {r.variant}</span> : null}
+                <span className="ml-2 font-mono text-xs text-muted">
+                  #{r.batchId}
+                  {r.batchLabel ? ` ${r.batchLabel}` : ""}
+                </span>
+              </td>
+              <td className="px-3 py-2.5 font-mono text-sm whitespace-nowrap">{r.expiry}</td>
+              <td className="px-3 py-2.5 text-right font-mono">{r.daysToExpiry}</td>
+              <td className="px-3 py-2.5"><ExpiryBadge status={r.status} /></td>
+              <td className="px-3 py-2.5 text-right font-mono font-medium">
+                {r.balance}
+                {r.unit ? <span className="text-muted"> {r.unit}</span> : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </TableWrap>
+      <Pagination total={rows.length} page={page.page} pageSize={page.pageSize} onPage={page.setPage} />
+    </>
   );
 }

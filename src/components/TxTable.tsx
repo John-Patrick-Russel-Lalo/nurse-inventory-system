@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import type { TransactionView } from "@/lib/api-types";
 import { usePermissions } from "./SessionProvider";
+import { Pagination, usePaging } from "./Pagination";
 import {
   Alert,
   Button,
@@ -42,6 +43,8 @@ export function TxTable({
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
+  const page = usePaging(transactions, 10);
+
   const submitVoid = async () => {
     if (!voiding) return;
     setBusy(true);
@@ -75,7 +78,7 @@ export function TxTable({
           </tr>
         </thead>
         <tbody>
-          {transactions.map((t) => (
+          {page.rows.map((t) => (
             <tr key={t.id} className={cn(rowClass, t.voidedAt && "opacity-60")}>
               <td className="px-3 py-2.5 font-mono text-xs whitespace-nowrap">{t.date}</td>
               {showItem ? (
@@ -120,6 +123,8 @@ export function TxTable({
           ))}
         </tbody>
       </TableWrap>
+
+      <Pagination total={transactions.length} page={page.page} pageSize={page.pageSize} onPage={page.setPage} />
 
       {voiding ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" aria-labelledby="void-title">

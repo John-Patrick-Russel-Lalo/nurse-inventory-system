@@ -4,6 +4,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
 import { TxTable } from "@/components/TxTable";
+import { Pagination, usePaging } from "@/components/Pagination";
 import { TopUsedChart, UsageTrendChart } from "@/components/Charts";
 import {
   Alert,
@@ -53,6 +54,9 @@ function QuickAction({ href, label, hint, Icon }: { href: string; label: string;
 export default function DashboardPage() {
   const { isAdmin } = usePermissions();
   const { data, error, loading, reload, refreshing } = useApi(() => api.dashboard(), []);
+
+  // The low-stock panel is a table like any other, so it gets the same pager.
+  const lowPage = usePaging(data?.lowStock ?? [], 10);
 
   if (loading) return <Loading />;
   if (error) return <ErrorNote error={new Error(error)} />;
@@ -147,7 +151,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.lowStock.map((item) => (
+                    {lowPage.rows.map((item) => (
                       <tr key={item.id} className={rowClass}>
                         <td className="px-3 py-2">
                           <Link href={`/items/${item.id}`} className={linkClass}>
@@ -166,6 +170,7 @@ export default function DashboardPage() {
                     ))}
                   </tbody>
                 </TableWrap>
+                <Pagination total={data.lowStock.length} page={lowPage.page} pageSize={lowPage.pageSize} onPage={lowPage.setPage} />
                 <Link href="/stock?lowOnly=1" className={panelLink}>
                   See the full stock list
                 </Link>

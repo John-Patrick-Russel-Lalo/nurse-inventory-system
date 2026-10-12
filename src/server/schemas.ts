@@ -56,7 +56,6 @@ export const itemPatchSchema = z
   .refine((v) => Object.keys(v).length > 0, { message: "Nothing to change." });
 
 export const itemCreateSchema = z.object({
-  id: z.string().trim().max(20).optional(),
   name: z.string().trim().min(2, "Give the item a name.").max(120),
   variant: z.string().trim().max(120).nullish(),
   category,

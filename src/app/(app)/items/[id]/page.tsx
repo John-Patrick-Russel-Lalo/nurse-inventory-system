@@ -8,6 +8,7 @@ import { CATEGORIES, type Category, type ItemPatchBody } from "@/lib/api-types";
 import { useApi } from "@/lib/use-api";
 import { usePermissions } from "@/components/SessionProvider";
 import { TxTable } from "@/components/TxTable";
+import { Pagination, usePaging } from "@/components/Pagination";
 import { BalanceLineChart, UsageTrendChart } from "@/components/Charts";
 import {
   Alert,
@@ -38,6 +39,9 @@ export default function ItemDetailPage() {
   const { isAdmin } = usePermissions();
   const { data, error, loading, reload } = useApi(() => api.item(id), [id]);
   const [editing, setEditing] = useState(false);
+
+  // The batch list can grow long, so it is Paginated like every other table.
+  const batchPage = usePaging(data?.batches ?? [], 10, id);
 
   if (loading) return <Loading />;
   if (error) return <ErrorNote error={new Error(error)} />;
@@ -112,36 +116,39 @@ export default function ItemDetailPage() {
             action={<Link href="/receive">Receive stock</Link>}
           />
         ) : (
-          <TableWrap>
-            <thead>
-              <tr>
-                <th scope="col" className={thClass}>Batch</th>
-                <th scope="col" className={thClass}>Expiry</th>
-                <th scope="col" className={thClass}>Status</th>
-                <th scope="col" className={thClass}>Received on</th>
-                <th scope="col" className={thRightClass}>In</th>
-                <th scope="col" className={thRightClass}>Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {batches.map((b) => (
-                <tr key={b.id} className={rowClass}>
-                  <td className="px-3 py-2.5 font-mono text-xs">
-                    #{b.id}
-                    {b.label ? <span className="ml-1 text-muted">{b.label}</span> : null}
-                    {b.source ? <span className="ml-1 text-muted">· {b.source}</span> : null}
-                  </td>
-                  <td className="px-3 py-2.5 font-mono text-xs">{b.expiry ?? "unknown"}</td>
-                  <td className="px-3 py-2.5"><ExpiryBadge status={b.expiryStatus} /></td>
-                  <td className="px-3 py-2.5 font-mono text-xs text-muted">{b.receivedOn ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-muted">{b.qtyReceived}</td>
-                  <td className={cn("px-3 py-2.5 text-right font-mono font-medium", b.balance === 0 && "text-muted")}>
-                    {b.balance}
-                  </td>
+          <>
+            <TableWrap>
+              <thead>
+                <tr>
+                  <th scope="col" className={thClass}>Batch</th>
+                  <th scope="col" className={thClass}>Expiry</th>
+                  <th scope="col" className={thClass}>Status</th>
+                  <th scope="col" className={thClass}>Received on</th>
+                  <th scope="col" className={thRightClass}>In</th>
+                  <th scope="col" className={thRightClass}>Balance</th>
                 </tr>
-              ))}
-            </tbody>
-          </TableWrap>
+              </thead>
+              <tbody>
+                {batchPage.rows.map((b) => (
+                  <tr key={b.id} className={rowClass}>
+                    <td className="px-3 py-2.5 font-mono text-xs">
+                      #{b.id}
+                      {b.label ? <span className="ml-1 text-muted">{b.label}</span> : null}
+                      {b.source ? <span className="ml-1 text-muted">· {b.source}</span> : null}
+                    </td>
+                    <td className="px-3 py-2.5 font-mono text-xs">{b.expiry ?? "unknown"}</td>
+                    <td className="px-3 py-2.5"><ExpiryBadge status={b.expiryStatus} /></td>
+                    <td className="px-3 py-2.5 font-mono text-xs text-muted">{b.receivedOn ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-muted">{b.qtyReceived}</td>
+                    <td className={cn("px-3 py-2.5 text-right font-mono font-medium", b.balance === 0 && "text-muted")}>
+                      {b.balance}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </TableWrap>
+            <Pagination total={batches.length} page={batchPage.page} pageSize={batchPage.pageSize} onPage={batchPage.setPage} />
+          </>
         )}
       </Panel>
 

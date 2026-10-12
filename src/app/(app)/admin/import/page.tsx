@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
+import { Pagination, usePaging } from "@/components/Pagination";
 import type { ImportReportResponse } from "@/server/import-report";
 import {
   Alert,
@@ -90,6 +91,9 @@ function ItemLink({ id }: { id: string }) {
 
 export default function ImportPage() {
   const { data, error, loading } = useApi(() => api.importReport(), []);
+
+  // The months list is a table like any other, so it gets the same pager.
+  const monthsPage = usePaging(data?.months ?? [], 10);
 
   if (loading) return <Loading />;
   if (error) return <ErrorNote error={new Error(error)} />;
@@ -200,7 +204,7 @@ export default function ImportPage() {
             </tr>
           </thead>
           <tbody>
-            {data.months.map((m) => (
+            {monthsPage.rows.map((m) => (
               <tr key={m.month} className={rowClass}>
                 <td className="px-3 py-2 text-xs">{m.sheet}</td>
                 <td className="px-3 py-2 text-right font-mono text-xs">{m.rows.toLocaleString()}</td>
@@ -211,6 +215,7 @@ export default function ImportPage() {
             ))}
           </tbody>
         </TableWrap>
+        <Pagination total={data.months.length} page={monthsPage.page} pageSize={monthsPage.pageSize} onPage={monthsPage.setPage} />
       </Panel>
 
       {data.sources.length ? (
@@ -231,61 +236,70 @@ export default function ImportPage() {
 }
 
 function MismatchTable({ rows }: { rows: { month: string; itemId: string; expected: number; rebuilt: number }[] }) {
+  const page = usePaging(rows, 10);
   return (
-    <TableWrap className="border-danger/40">
-      <thead>
-        <tr>
-          <th scope="col" className={thClass}>Month</th>
-          <th scope="col" className={thClass}>Item</th>
-          <th scope="col" className={thRightClass}>Old sheet</th>
-          <th scope="col" className={thRightClass}>Rebuilt</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={`${r.month}-${r.itemId}`} className={rowClass}>
-            <td className="px-3 py-2 font-mono text-xs">{r.month}</td>
-            <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
-            <td className="px-3 py-2 text-right font-mono text-xs">{r.expected}</td>
-            <td className="px-3 py-2 text-right font-mono text-xs font-medium text-danger">{r.rebuilt}</td>
+    <>
+      <TableWrap className="border-danger/40">
+        <thead>
+          <tr>
+            <th scope="col" className={thClass}>Month</th>
+            <th scope="col" className={thClass}>Item</th>
+            <th scope="col" className={thRightClass}>Old sheet</th>
+            <th scope="col" className={thRightClass}>Rebuilt</th>
           </tr>
-        ))}
-      </tbody>
-    </TableWrap>
+        </thead>
+        <tbody>
+          {page.rows.map((r) => (
+            <tr key={`${r.month}-${r.itemId}`} className={rowClass}>
+              <td className="px-3 py-2 font-mono text-xs">{r.month}</td>
+              <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
+              <td className="px-3 py-2 text-right font-mono text-xs">{r.expected}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-medium text-danger">{r.rebuilt}</td>
+            </tr>
+          ))}
+        </tbody>
+      </TableWrap>
+      <Pagination total={rows.length} page={page.page} pageSize={page.pageSize} onPage={page.setPage} />
+    </>
   );
 }
 
 function GapTable({ rows }: { rows: ImportReportResponse["gaps"] }) {
+  const page = usePaging(rows, 10);
   return (
-    <TableWrap>
-      <thead>
-        <tr>
-          <th scope="col" className={thClass}>Item</th>
-          <th scope="col" className={thClass}>Date</th>
-          <th scope="col" className={thRightClass}>Before</th>
-          <th scope="col" className={thRightClass}>After</th>
-          <th scope="col" className={thRightClass}>Correction</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((g) => (
-          <tr key={`${g.itemId}-${g.date}`} className={rowClass}>
-            <td className="px-3 py-2"><ItemLink id={g.itemId} /></td>
-            <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{g.date}</td>
-            <td className="px-3 py-2 text-right font-mono text-xs text-muted">{g.from}</td>
-            <td className="px-3 py-2 text-right font-mono text-xs">{g.to}</td>
-            <td className="px-3 py-2 text-right font-mono text-xs font-medium text-warn">
-              {g.difference > 0 ? `+${g.difference}` : g.difference}
-            </td>
+    <>
+      <TableWrap>
+        <thead>
+          <tr>
+            <th scope="col" className={thClass}>Item</th>
+            <th scope="col" className={thClass}>Date</th>
+            <th scope="col" className={thRightClass}>Before</th>
+            <th scope="col" className={thRightClass}>After</th>
+            <th scope="col" className={thRightClass}>Correction</th>
           </tr>
-        ))}
-      </tbody>
-    </TableWrap>
+        </thead>
+        <tbody>
+          {page.rows.map((g) => (
+            <tr key={`${g.itemId}-${g.date}`} className={rowClass}>
+              <td className="px-3 py-2"><ItemLink id={g.itemId} /></td>
+              <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{g.date}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs text-muted">{g.from}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs">{g.to}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs font-medium text-warn">
+                {g.difference > 0 ? `+${g.difference}` : g.difference}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </TableWrap>
+      <Pagination total={rows.length} page={page.page} pageSize={page.pageSize} onPage={page.setPage} />
+    </>
   );
 }
 
 function BatchTable({ rows, showExpiry }: { rows: ImportReportResponse["expired"]; showExpiry: boolean }) {
   const total = rows.reduce((s, r) => s + r.balance, 0);
+  const page = usePaging(rows, 10);
   return (
     <>
       <p className="mb-2 text-sm text-muted">
@@ -300,7 +314,7 @@ function BatchTable({ rows, showExpiry }: { rows: ImportReportResponse["expired"
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
+          {page.rows.map((r) => (
             <tr key={`${r.itemId}-${r.expiry ?? "none"}`} className={rowClass}>
               <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
               {showExpiry ? <td className="px-3 py-2 font-mono text-xs">{r.expiry}</td> : null}
@@ -309,52 +323,61 @@ function BatchTable({ rows, showExpiry }: { rows: ImportReportResponse["expired"
           ))}
         </tbody>
       </TableWrap>
+      <Pagination total={rows.length} page={page.page} pageSize={page.pageSize} onPage={page.setPage} />
     </>
   );
 }
 
 function StoppedTable({ rows }: { rows: ImportReportResponse["stoppedRecording"] }) {
+  const page = usePaging(rows, 10);
   return (
-    <TableWrap>
-      <thead>
-        <tr>
-          <th scope="col" className={thClass}>Item</th>
-          <th scope="col" className={thClass}>Last recorded</th>
-          <th scope="col" className={thRightClass}>Frozen balance</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.itemId} className={rowClass}>
-            <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
-            <td className="px-3 py-2 font-mono text-xs">{r.lastDate}</td>
-            <td className="px-3 py-2 text-right font-mono text-xs">{r.balance}</td>
+    <>
+      <TableWrap>
+        <thead>
+          <tr>
+            <th scope="col" className={thClass}>Item</th>
+            <th scope="col" className={thClass}>Last recorded</th>
+            <th scope="col" className={thRightClass}>Frozen balance</th>
           </tr>
-        ))}
-      </tbody>
-    </TableWrap>
+        </thead>
+        <tbody>
+          {page.rows.map((r) => (
+            <tr key={r.itemId} className={rowClass}>
+              <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
+              <td className="px-3 py-2 font-mono text-xs">{r.lastDate}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs">{r.balance}</td>
+            </tr>
+          ))}
+        </tbody>
+      </TableWrap>
+      <Pagination total={rows.length} page={page.page} pageSize={page.pageSize} onPage={page.setPage} />
+    </>
   );
 }
 
 function LateOpeningTable({ rows }: { rows: ImportReportResponse["lateOpenings"] }) {
+  const page = usePaging(rows, 10);
   return (
-    <TableWrap>
-      <thead>
-        <tr>
-          <th scope="col" className={thClass}>Item</th>
-          <th scope="col" className={thClass}>First seen</th>
-          <th scope="col" className={thRightClass}>Units</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.itemId} className={rowClass}>
-            <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
-            <td className="px-3 py-2 font-mono text-xs">{r.date}</td>
-            <td className="px-3 py-2 text-right font-mono text-xs">{r.qty}</td>
+    <>
+      <TableWrap>
+        <thead>
+          <tr>
+            <th scope="col" className={thClass}>Item</th>
+            <th scope="col" className={thClass}>First seen</th>
+            <th scope="col" className={thRightClass}>Units</th>
           </tr>
-        ))}
-      </tbody>
-    </TableWrap>
+        </thead>
+        <tbody>
+          {page.rows.map((r) => (
+            <tr key={r.itemId} className={rowClass}>
+              <td className="px-3 py-2"><ItemLink id={r.itemId} /></td>
+              <td className="px-3 py-2 font-mono text-xs">{r.date}</td>
+              <td className="px-3 py-2 text-right font-mono text-xs">{r.qty}</td>
+            </tr>
+          ))}
+        </tbody>
+      </TableWrap>
+      <Pagination total={rows.length} page={page.page} pageSize={page.pageSize} onPage={page.setPage} />
+    </>
   );
 }

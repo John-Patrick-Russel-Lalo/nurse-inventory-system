@@ -6,6 +6,7 @@ import type { CountRow, MonthEndResponse } from "@/lib/api-types";
 import { monthOf, previousMonth } from "@/lib/dates";
 import { usePermissions } from "@/components/SessionProvider";
 import { DownloadButton } from "@/components/DownloadButton";
+import { Pagination, usePaging } from "@/components/Pagination";
 import {
   Alert,
   Button,
@@ -142,6 +143,9 @@ export default function MonthEndPage() {
 
   const options = monthOptions(current);
 
+  // A different month restarts the count sheet at the first page.
+  const countPage = usePaging(sheet?.counts ?? [], 10, month);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -213,27 +217,35 @@ export default function MonthEndPage() {
                 hint="Every item in the catalogue is inactive or hidden, so there is nothing to count."
               />
             ) : (
-              <TableWrap>
-                <thead>
-                  <tr>
-                    <th scope="col" className={thClass}>Item</th>
-                    <th scope="col" className={thRightClass}>System says</th>
-                    <th scope="col" className={thRightClass}>You counted</th>
-                    <th scope="col" className={thRightClass}>Difference</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sheet.counts.map((row) => (
-                    <CountRowView
-                      key={row.itemId}
-                      row={row}
-                      value={counts[row.itemId] ?? ""}
-                      disabled={closed || busy}
-                      onChange={(v) => setCounts((c) => ({ ...c, [row.itemId]: v }))}
-                    />
-                  ))}
-                </tbody>
-              </TableWrap>
+              <>
+                <TableWrap>
+                  <thead>
+                    <tr>
+                      <th scope="col" className={thClass}>Item</th>
+                      <th scope="col" className={thRightClass}>System says</th>
+                      <th scope="col" className={thRightClass}>You counted</th>
+                      <th scope="col" className={thRightClass}>Difference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {countPage.rows.map((row) => (
+                      <CountRowView
+                        key={row.itemId}
+                        row={row}
+                        value={counts[row.itemId] ?? ""}
+                        disabled={closed || busy}
+                        onChange={(v) => setCounts((c) => ({ ...c, [row.itemId]: v }))}
+                      />
+                    ))}
+                  </tbody>
+                </TableWrap>
+                <Pagination
+                  total={sheet.counts.length}
+                  page={countPage.page}
+                  pageSize={countPage.pageSize}
+                  onPage={countPage.setPage}
+                />
+              </>
             )}
           </Panel>
 
