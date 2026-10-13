@@ -10,11 +10,12 @@
 
 import ExcelJS from "exceljs";
 import { db } from "@/lib/db";
-import { fromDbDate, monthsBetween, toDbDate } from "@/lib/dates";
+import { fromDbDate, monthOf, monthsBetween, toDbDate } from "@/lib/dates";
 import {
   formatExpiry,
   ledgerRows,
   ledgerTotals,
+  recordedMonths,
   spanDays,
   wideMonthSheet,
   type LedgerItem,
@@ -39,6 +40,8 @@ export interface LedgerExport {
   to: string;
   /** Leave inactive items out of the tab. The old sheet listed the whole catalogue. */
   activeOnly?: boolean;
+  /** Only write tabs for months that actually contain an entry, skipping gap months. */
+  onlyRecorded?: boolean;
 }
 
 /** "2026-09" turned into the range a monthly export covers: the whole of that month. */
@@ -46,6 +49,23 @@ export function monthRange(month: string): { from: string; to: string } {
   const [year, index] = month.split("-").map(Number);
   const last = new Date(Date.UTC(year, index, 0)).getUTCDate();
   return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, "0")}` };
+}
+
+/**
+ * The whole recorded history as full months: the month of the first entry through the month of the
+ * last one, each tab covering every day of its month the way the archive sheets do. Null when no
+ * entry has been recorded yet.
+ */
+export async function recordedRange(): Promise<{ from: string; to: string } | null> {
+  const { _min, _max } = await db.transaction.aggregate({
+    where: { voidedAt: null },
+    _min: { date: true },
+    _max: { date: true },
+  });
+  if (!_min.date || !_max.date) return null;
+  const first = fromDbDate(_min.date)!;
+  const last = fromDbDate(_max.date)!;
+  return { from: monthRange(monthOf(first)).from, to: monthRange(monthOf(last)).to };
 }
 
 /** Reads everything needed to rebuild the tab: the catalogue and every entry up to `to`. */
@@ -125,7 +145,9 @@ export async function ledgerWorkbook(ctx: Ctx, options: LedgerExport): Promise<B
 
   // One tab per month, named the way the office names its originals ("SEPTEMBER 2026s"), so a
   // range that spans months still reads the same as the archive it replaces.
-  const months = monthsBetween(from.slice(0, 7), to.slice(0, 7));
+  const months = options.onlyRecorded
+    ? recordedMonths(from.slice(0, 7), to.slice(0, 7), movements)
+    : monthsBetween(from.slice(0, 7), to.slice(0, 7));
   for (const month of months) {
     const sheet = wideMonthSheet({ items, movements, month });
     const ws = wb.addWorksheet(sheet.sheet);

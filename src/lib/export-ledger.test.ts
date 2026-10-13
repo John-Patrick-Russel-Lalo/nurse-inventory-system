@@ -9,6 +9,7 @@ import {
   ledgerTotals,
   monthDays,
   monthTitle,
+  recordedMonths,
   spanDays,
   wideMonthSheet,
   type LedgerItem,
@@ -243,6 +244,16 @@ test("monthDays is every calendar day, weekend included", () => {
   assert.equal(monthDays("2028-02").length, 29, "a leap year keeps its 29th");
   assert.equal(monthDays("2026-09")[0], "2026-09-01");
   assert.equal(monthDays("2026-09").at(-1), "2026-09-30");
+});
+
+test("recordedMonths keeps only the months that hold an entry, leaving a gap month out", () => {
+  const movements = [
+    { date: "2026-08-31", itemId: "MED-001", qty: 30, expiry: null },
+    { date: "2026-09-05", itemId: "MED-001", qty: -2, expiry: null },
+    { date: "2026-11-02", itemId: "MED-001", qty: 10, expiry: null },
+  ];
+  assert.deepEqual(recordedMonths("2026-08", "2026-11", movements), ["2026-08", "2026-09", "2026-11"]);
+  assert.deepEqual(recordedMonths("2026-08", "2026-08", movements), ["2026-08"]);
 });
 
 test("formatExpiry writes a month and a year the way the workbook does", () => {

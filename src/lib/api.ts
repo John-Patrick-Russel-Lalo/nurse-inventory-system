@@ -103,8 +103,8 @@ function requireOnline(feature: string): void {
 
 /** URLs of the routes that answer with a file rather than JSON. */
 export const downloadUrls = {
-  /** The office's wide "…s" tab. A month is what the office exports; from/to takes a wider range. */
-  ledger: (q?: { month?: string; from?: string; to?: string; activeOnly?: boolean }) =>
+  /** The office's wide "…s" tabs. A month is the day-to-day export; `all` is the whole recorded history. */
+  ledger: (q?: { month?: string; from?: string; to?: string; all?: boolean; activeOnly?: boolean }) =>
     `/api/export/ledger${qs(q)}`,
   stock: (q?: Query) => `/api/export/stock${qs(q)}`,
 };

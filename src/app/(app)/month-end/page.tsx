@@ -175,6 +175,26 @@ export default function MonthEndPage() {
         </div>
       </Card>
 
+      <Card className="flex flex-wrap items-center gap-4 p-4">
+        <div className="max-w-lg">
+          <p className="font-medium">The whole workbook</p>
+          <p className="text-sm text-muted">
+            Every month that has an entry in one file, laid out the way the office&apos;s archive is. It is the same
+            sheet as the month download, just covering the whole history — like NURSE.xlsx.
+          </p>
+        </div>
+        <div className="ml-auto">
+          <DownloadButton
+            url={downloadUrls.ledger({ all: true })}
+            fallbackName="medisakto-ledger-all-months.xlsx"
+            variant="primary"
+            size="md"
+          >
+            Download all months as Excel
+          </DownloadButton>
+        </div>
+      </Card>
+
       {notice ? <Alert tone="success">{notice}</Alert> : null}
       {error ? <ErrorNote error={new Error(error)} /> : null}
       {loading ? <Loading /> : null}

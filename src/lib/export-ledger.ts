@@ -1,4 +1,4 @@
-// Regenerates the workbook's long-format tab from the stored movements.
+// Regenerates the workbook's tabs from the stored movements.
 //
 // The app never keeps those daily rows. All 73,719 of them are derived here, on demand, from
 // the entries that actually caused them, which is the whole reason the old format can be retired
@@ -8,7 +8,7 @@
 // its own. One rule matters more than any other — BEGINNING + RECEIVED - DISPENSED = ENDING on
 // every row, with no exceptions — because that identity is what makes the sheet believable.
 
-import { addDays, dayDiff, lastDayOfMonth } from "./dates.ts";
+import { addDays, dayDiff, lastDayOfMonth, monthsBetween } from "./dates.ts";
 
 /**
  * One converted tab's columns, in order. Shared with the reader in src/lib/workbook.ts so the
@@ -80,6 +80,15 @@ export function monthTitle(month: string): string {
 /** Every calendar day of one month, as "YYYY-MM-DD". */
 export function monthDays(month: string): string[] {
   return datesBetween(`${month}-01`, lastDayOfMonth(month));
+}
+
+/**
+ * The months from `fromMonth` to `toMonth` that actually contain a movement, so a whole-history
+ * workbook skips a gap month instead of writing an all-zero tab for it.
+ */
+export function recordedMonths(fromMonth: string, toMonth: string, movements: readonly LedgerMovement[]): string[] {
+  const present = new Set(movements.map((m) => m.date.slice(0, 7)));
+  return monthsBetween(fromMonth, toMonth).filter((month) => present.has(month));
 }
 
 /**
