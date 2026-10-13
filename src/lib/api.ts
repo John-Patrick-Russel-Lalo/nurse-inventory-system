@@ -103,7 +103,7 @@ function requireOnline(feature: string): void {
 
 /** URLs of the routes that answer with a file rather than JSON. */
 export const downloadUrls = {
-  /** The long-format tab. A month is what the office exports; from/to takes a wider range. */
+  /** The office's wide "…s" tab. A month is what the office exports; from/to takes a wider range. */
   ledger: (q?: { month?: string; from?: string; to?: string; activeOnly?: boolean }) =>
     `/api/export/ledger${qs(q)}`,
   stock: (q?: Query) => `/api/export/stock${qs(q)}`,

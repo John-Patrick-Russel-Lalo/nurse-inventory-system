@@ -15,10 +15,10 @@ export const maxDuration = 60;
  * GET /api/export/ledger?month=2026-09
  * GET /api/export/ledger?from=2025-02-10&to=2026-09-30
  *
- * The long-format tab the office used to produce with the convert step: one tab per month, one
- * row per item per day, DATE | ITEM ID | BEGINNING BALANCE | RECEIVED | DISPENSED |
- * ENDING BALANCE | EXPIRATION DATE. The rows are rebuilt from the stored movements, which is why
- * nothing here reads a balance.
+ * The office's original wide tab: one tab per month, named "SEPTEMBER 2026s", one row per item
+ * with its two expiries, then a STARTING BALANCE / DISPENSED pair per day, ending in BALANCE and
+ * MONTH-END BALANCE. The numbers are rebuilt from the stored movements, which is why nothing here
+ * reads a balance.
  */
 export async function GET(request: Request) {
   return handleFile(async () => {

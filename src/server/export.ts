@@ -1,7 +1,8 @@
 // Writes the two Excel files the office gets out of the app:
 //
-//   ledger   the long-format tab they use today, rebuilt from stored movements. One tab per
-//            month, one row per item per day, the same seven columns.
+//   ledger   the office's original wide tab, rebuilt from stored movements. One tab per month,
+//            named "SEPTEMBER 2026s", one row per item and one STARTING BALANCE / DISPENSED pair
+//            per day, ending in BALANCE and MONTH-END BALANCE.
 //   stock    the /stock list, plus the batch breakdown behind it.
 //
 // ExcelJS is already a dependency, because reading NURSE.xlsx needs it. Nothing here reads the
@@ -9,16 +10,15 @@
 
 import ExcelJS from "exceljs";
 import { db } from "@/lib/db";
-import { fromDbDate, toDbDate } from "@/lib/dates";
+import { fromDbDate, monthsBetween, toDbDate } from "@/lib/dates";
 import {
-  LEDGER_HEADERS,
+  formatExpiry,
   ledgerRows,
   ledgerTotals,
-  monthTitle,
   spanDays,
+  wideMonthSheet,
   type LedgerItem,
   type LedgerMovement,
-  type LedgerRow,
 } from "@/lib/export-ledger";
 import type { StockResponse } from "@/lib/api-types";
 import { stockReport, type ItemFilter } from "./inventory";
@@ -73,17 +73,18 @@ async function readItems(activeOnly: boolean): Promise<LedgerItem[]> {
   });
 }
 
-// ---------- the long-format tab ----------
+// ---------- the wide tab ----------
 
 /**
- * The long-format ledger as rows, ready to write. Split out from the workbook so the route can
- * report the row count without holding a whole file in memory, and so the numbers can be
- * checked against a month that is already closed.
+ * The numbers behind the wide tabs, ready to write. Split out from the workbook so the route can
+ * report the totals without holding a whole file in memory, and so the numbers can be checked
+ * against a month that is already closed.
  */
 export async function buildLedger(ctx: Ctx, options: LedgerExport): Promise<{
   from: string;
   to: string;
-  rows: LedgerRow[];
+  items: LedgerItem[];
+  movements: LedgerMovement[];
   totals: ReturnType<typeof ledgerTotals>;
 }> {
   const days = spanDays(options.from, options.to);
@@ -99,64 +100,58 @@ export async function buildLedger(ctx: Ctx, options: LedgerExport): Promise<{
     readItems(options.activeOnly ?? false),
     readMovements(options.to),
   ]);
-  const rows = ledgerRows({ items, movements, from: options.from, to: options.to });
-  return { from: options.from, to: options.to, rows, totals: ledgerTotals(rows) };
+  // The totals the audit keeps come from the long arithmetic, which is what ledgerTotals reads.
+  const totals = ledgerTotals(ledgerRows({ items, movements, from: options.from, to: options.to }));
+  return { from: options.from, to: options.to, items, movements, totals };
 }
 
-/** The ledger as an .xlsx file, in the format the workbook reader already understands. */
+/** The ledger as an .xlsx file, in the office's original wide format. */
 export async function ledgerWorkbook(ctx: Ctx, options: LedgerExport): Promise<Buffer> {
-  const { from, to, rows, totals } = await buildLedger(ctx, options);
+  const { from, to, items, movements, totals } = await buildLedger(ctx, options);
 
   const wb = new ExcelJS.Workbook();
   wb.creator = "MediSakto";
   wb.created = new Date();
 
-  // The catalogue comes first, as it does in NURSE.xlsx, so the file is self-contained and the
-  // importer can read a sheet this app wrote.
+  // The catalogue comes first, as it does in NURSE.xlsx, so the file is self-contained.
   const catalogue = wb.addWorksheet("ITEMS");
   catalogue.addRow(["ID", "NAME", "NOTES"]);
-  for (const item of await readItems(options.activeOnly ?? false)) {
-    catalogue.addRow([item.id, item.name, item.variant]);
-  }
+  for (const item of items) catalogue.addRow([item.id, item.name, item.variant]);
   styleHeader(catalogue);
   catalogue.getColumn(1).width = 12;
   catalogue.getColumn(2).width = 38;
   catalogue.getColumn(3).width = 24;
   catalogue.views = [{ state: "frozen", ySplit: 1 }];
 
-  // One tab per month, named the way the old tabs are, so a range that spans months still reads
-  // the same as the archive it replaces.
-  const byMonth = new Map<string, LedgerRow[]>();
-  for (const row of rows) {
-    const month = row.date.slice(0, 7);
-    const list = byMonth.get(month);
-    if (list) list.push(row);
-    else byMonth.set(month, [row]);
-  }
-
-  for (const [month, monthRows] of byMonth) {
-    const ws = wb.addWorksheet(monthTitle(month));
-    ws.addRow([...LEDGER_HEADERS]);
-    for (const r of monthRows) {
-      // A real date, not text: ExcelJS reads it back as UTC midnight, which is what the
-      // workbook reader expects, so the export can be fed straight back into the importer.
-      ws.addRow([toDbDate(r.date), r.itemId, r.beginning, r.received, r.dispensed, r.ending, r.expiry]);
+  // One tab per month, named the way the office names its originals ("SEPTEMBER 2026s"), so a
+  // range that spans months still reads the same as the archive it replaces.
+  const months = monthsBetween(from.slice(0, 7), to.slice(0, 7));
+  for (const month of months) {
+    const sheet = wideMonthSheet({ items, movements, month });
+    const ws = wb.addWorksheet(sheet.sheet);
+    ws.addRow([sheet.title]);
+    ws.addRow([]);
+    ws.addRow(sheet.headers);
+    for (const row of sheet.rows) {
+      const values: (string | number | null)[] = [
+        row.index,
+        row.name,
+        formatExpiry(row.expiries[0] ?? null),
+        formatExpiry(row.expiries[1] ?? null),
+      ];
+      for (const day of row.days) values.push(day.beginning, day.dispensed);
+      values.push(row.balance, row.balance);
+      ws.addRow(values);
     }
-    styleHeader(ws);
-    ws.getColumn(1).numFmt = "yyyy-mm-dd";
-    ws.getColumn(7).numFmt = "yyyy-mm-dd";
-    ws.getColumn(1).width = 12;
-    ws.getColumn(2).width = 12;
-    for (const n of [3, 4, 5, 6, 7]) ws.getColumn(n).width = 14;
-    ws.views = [{ state: "frozen", xSplit: 2, ySplit: 1 }];
+    styleWideSheet(ws, sheet.headers.length);
   }
 
   const buffer = Buffer.from(await wb.xlsx.writeBuffer());
 
   await audit(db, ctx, "ledger.export", "export", `${from}/${to}`, {
-    rows: rows.length,
+    items: items.length,
     days: spanDays(from, to),
-    months: [...byMonth.keys()],
+    months,
     received: totals.received,
     dispensed: totals.dispensed,
     unitsOnHand: totals.closing,
@@ -265,4 +260,72 @@ function styleHeader(ws: ExcelJS.Worksheet): void {
   header.font = { bold: true };
   header.alignment = { vertical: "middle" };
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columnCount } };
+}
+
+/** The palette the office's own sheets use: blue for the month's opening and closing, green for the day's dispenses. */
+const OPENING_FILL = "FFDEEAF6"; // light blue
+const DISPENSED_FILL = "FFE2EFD9"; // light green
+const DISPENSED_FONT = "FFFF0000"; // red
+
+function solidFill(argb: string): ExcelJS.Fill {
+  return { type: "pattern", pattern: "solid", fgColor: { argb } };
+}
+
+const THIN = { style: "thin" as const };
+const edged = (): ExcelJS.Borders =>
+  ({ top: THIN, left: THIN, right: THIN, bottom: THIN }) as ExcelJS.Borders;
+
+/**
+ * Matches the office's own tabs, so the downloaded file reads as the same sheet they keep: a bold
+ * 18pt title, a wrapped bold 12pt header row with thin borders, light blue on the first STARTING
+ * BALANCE and on MONTH-END BALANCE, light green on every DISPENSED column, red dispense figures,
+ * and the column widths the workbook uses so the text fits instead of getting cut off.
+ */
+export function styleWideSheet(ws: ExcelJS.Worksheet, columnCount: number): void {
+  ws.getRow(1).font = { bold: true, size: 18 };
+
+  const header = ws.getRow(3);
+  header.height = 51.75;
+  header.font = { bold: true, size: 12 };
+  header.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+  for (let c = 2; c <= columnCount; c++) {
+    const cell = header.getCell(c);
+    cell.border = edged();
+    if (c === 5 || c === columnCount) cell.fill = solidFill(OPENING_FILL);
+    else if (c >= 6 && c % 2 === 0) cell.fill = solidFill(DISPENSED_FILL);
+  }
+
+  for (let r = 4; r <= ws.rowCount; r++) {
+    const row = ws.getRow(r);
+    row.getCell(1).font = { size: 11 };
+    row.getCell(2).font = { bold: true, size: 11 };
+    for (let c = 2; c <= columnCount; c++) {
+      const cell = row.getCell(c);
+      cell.border = edged();
+      if (c === 3 || c === 4) {
+        // The expiries are the month-and-year text the office types, not dates in the calendar.
+        cell.numFmt = "@";
+        continue;
+      }
+      if (c >= 5) {
+        cell.font = { size: 11 };
+        cell.alignment = { horizontal: "center" };
+      }
+      if (c >= 6 && c < columnCount && c % 2 === 0) {
+        cell.font = { bold: true, size: 11, color: { argb: DISPENSED_FONT } };
+        cell.fill = solidFill(DISPENSED_FILL);
+        cell.alignment = { horizontal: "center" };
+      }
+    }
+  }
+
+  ws.getColumn(1).width = 3.29;
+  ws.getColumn(2).width = 38.86;
+  ws.getColumn(3).width = 17;
+  ws.getColumn(4).width = 13.29;
+  ws.getColumn(5).width = 20.71; // the first STARTING BALANCE, which must fit the full-month header
+  for (let c = 6; c <= columnCount - 2; c++) ws.getColumn(c).width = c % 2 === 0 ? 12.43 : 11.14;
+  ws.getColumn(columnCount - 1).width = 11.14;
+  ws.getColumn(columnCount).width = 15.57;
+  ws.views = [{ state: "frozen", xSplit: 2, ySplit: 3 }];
 }

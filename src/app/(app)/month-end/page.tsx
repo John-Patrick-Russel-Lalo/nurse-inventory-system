@@ -258,8 +258,9 @@ export default function MonthEndPage() {
 
           <Panel title="The month as a spreadsheet" description="What the office keeps on file.">
             <p className="text-sm text-muted">
-              The download puts one row per item per day, with BEGINNING, RECEIVED, DISPENSED and ENDING columns. It is
-              built from your entries rather than typed, so the sheet and the app always match.
+              The download is the office&apos;s original sheet: one row per item, its expiry, and a STARTING BALANCE
+              and DISPENSED column for every day of the month. It is built from your entries rather than typed, so the
+              sheet and the app always match.
             </p>
           </Panel>
 

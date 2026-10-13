@@ -8,7 +8,7 @@
 // its own. One rule matters more than any other — BEGINNING + RECEIVED - DISPENSED = ENDING on
 // every row, with no exceptions — because that identity is what makes the sheet believable.
 
-import { addDays, dayDiff } from "./dates.ts";
+import { addDays, dayDiff, lastDayOfMonth } from "./dates.ts";
 
 /**
  * One converted tab's columns, in order. Shared with the reader in src/lib/workbook.ts so the
@@ -75,6 +75,130 @@ export function monthTitle(month: string): string {
   const word = MONTH_WORDS[Number(index) - 1];
   if (!word) throw new Error(`"${month}" is not a month.`);
   return `${word} ${year}`;
+}
+
+/** Every calendar day of one month, as "YYYY-MM-DD". */
+export function monthDays(month: string): string[] {
+  return datesBetween(`${month}-01`, lastDayOfMonth(month));
+}
+
+/**
+ * One wide tab's columns, counting the leading blank: A is the row number, B NAME, C and D the
+ * two EXPIRATION DATE columns, then a STARTING BALANCE / DISPENSED pair per day, then the two
+ * closing columns. This is the shape the office's "...s" tabs use.
+ */
+export interface WideLedgerSheet {
+  /** "YYYY-MM". */
+  month: string;
+  /** The tab name the office uses: "SEPTEMBER 2026s". */
+  sheet: string;
+  /** The merged banner in row 1. */
+  title: string;
+  /** The row-3 header cells. Index 0 is the blank column A, so index 1 is NAME. */
+  headers: (string | null)[];
+  rows: WideLedgerRow[];
+}
+
+export interface WideLedgerRow {
+  /** The 1-based position, written in column A. */
+  index: number;
+  /** "NAME (VARIANT)", the spelling the wide sheet has always used. */
+  name: string;
+  /** Up to two expiries of batches still holding stock at month end, earliest first. */
+  expiries: string[];
+  /** One entry per day of the month, in order: that day's opening balance and what left it. */
+  days: { beginning: number; dispensed: number }[];
+  /** The balance at the last day of the month, repeated in BALANCE and MONTH-END BALANCE. */
+  balance: number;
+}
+
+export interface WideMonthOptions {
+  items: readonly LedgerItem[];
+  /** Every movement up to the month's end, not only those inside it. */
+  movements: readonly LedgerMovement[];
+  /** "YYYY-MM". */
+  month: string;
+}
+
+/** The two expiries a wide cell can show, written the way the workbook writes them: "01/2027". */
+export function formatExpiry(expiry: string | null): string | null {
+  if (!expiry) return null;
+  return `${expiry.slice(5, 7)}/${expiry.slice(0, 4)}`;
+}
+
+/**
+ * Builds one of the office's original wide tabs: one row per item, one STARTING BALANCE /
+ * DISPENSED pair per calendar day of the month.
+ *
+ * STARTING BALANCE is the day's opening balance and DISPENSED the quantity that left it, which
+ * is the same arithmetic the long tab carries in its BEGINNING and DISPENSED columns. A receipt
+ * needs no column of its own: it lifts the next day's starting balance, which is how the wide
+ * tabs have always shown deliveries.
+ */
+export function wideMonthSheet(options: WideMonthOptions): WideLedgerSheet {
+  const { items, movements, month } = options;
+  const [year, monthIndex] = month.split("-").map(Number);
+  const word = MONTH_WORDS[monthIndex - 1];
+  if (!word) throw new Error(`"${month}" is not a month.`);
+
+  const days = monthDays(month);
+  const from = days[0];
+  const to = days[days.length - 1];
+  const rows = ledgerRows({ items, movements, from, to });
+  const byDay = new Map(rows.map((r) => [`${r.date}|${r.itemId}`, r]));
+
+  // Batch balances at month end, so the two EXPIRATION DATE columns name the stock on the shelf.
+  const holdings = new Map<string, Map<string, number>>();
+  for (const m of movements) {
+    if (m.date > to) continue;
+    let owned = holdings.get(m.itemId);
+    if (!owned) holdings.set(m.itemId, (owned = new Map()));
+    const expiry = m.expiry ?? "";
+    owned.set(expiry, (owned.get(expiry) ?? 0) + m.qty);
+  }
+  const expiriesOf = (itemId: string): string[] =>
+    [...(holdings.get(itemId) ?? [])]
+      .filter(([expiry, balance]) => expiry !== "" && balance > 0)
+      .map(([expiry]) => expiry)
+      .sort()
+      .slice(0, 2);
+
+  const catalogue = [...items].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+  return {
+    month,
+    sheet: `${word} ${year}s`,
+    title: `MEDICINE AND SUPPLY INVENTORY (${year})`,
+    headers: wideHeaders(word, year, monthIndex, days),
+    rows: catalogue.map((item, position) => {
+      const last = byDay.get(`${to}|${item.id}`);
+      return {
+        index: position + 1,
+        name: item.variant ? `${item.name} (${item.variant})` : item.name,
+        expiries: expiriesOf(item.id),
+        days: days.map((day) => {
+          const cell = byDay.get(`${day}|${item.id}`);
+          return { beginning: cell?.beginning ?? 0, dispensed: cell?.dispensed ?? 0 };
+        }),
+        balance: last?.ending ?? 0,
+      };
+    }),
+  };
+}
+
+/** The row-3 cells: NAME, two expiries, a per-day pair, then BALANCE and MONTH-END BALANCE. */
+function wideHeaders(word: string, year: number, month: number, days: readonly string[]): (string | null)[] {
+  const headers: (string | null)[] = [null, "NAME", "EXPIRATION DATE", "EXPIRATION DATE"];
+  days.forEach((day, i) => {
+    const date = Number(day.slice(8, 10));
+    const yy = String(year).slice(2);
+    headers.push(
+      i === 0 ? `STARTING BALANCE ${word} ${date}, ${year}` : `STARTING BALANCE (${month}/${date}/${yy})`,
+    );
+    headers.push(`DISPENSED: ${String(month).padStart(2, "0")}/${String(date).padStart(2, "0")}`);
+  });
+  headers.push("BALANCE", `MONTH-END BALANCE (${word})`);
+  return headers;
 }
 
 /** Every calendar day from `from` to `to`, both ends. Empty when `to` is earlier. */

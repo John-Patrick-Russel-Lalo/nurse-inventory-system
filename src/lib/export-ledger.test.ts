@@ -3,11 +3,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   datesBetween,
+  formatExpiry,
   LEDGER_HEADERS,
   ledgerRows,
   ledgerTotals,
+  monthDays,
   monthTitle,
   spanDays,
+  wideMonthSheet,
   type LedgerItem,
   type LedgerMovement,
 } from "./export-ledger.ts";
@@ -232,4 +235,62 @@ test("ledgerTotals reads opening off the first row of each item, so a cut range 
   assert.equal(totals.opening, 9);
   assert.equal(totals.received, 0);
   assert.equal(totals.closing, 9);
+});
+
+test("monthDays is every calendar day, weekend included", () => {
+  assert.equal(monthDays("2026-09").length, 30);
+  assert.equal(monthDays("2026-02").length, 28);
+  assert.equal(monthDays("2028-02").length, 29, "a leap year keeps its 29th");
+  assert.equal(monthDays("2026-09")[0], "2026-09-01");
+  assert.equal(monthDays("2026-09").at(-1), "2026-09-30");
+});
+
+test("formatExpiry writes a month and a year the way the workbook does", () => {
+  assert.equal(formatExpiry("2027-01-31"), "01/2027");
+  assert.equal(formatExpiry("2026-11-30"), "11/2026");
+  assert.equal(formatExpiry(null), null);
+});
+
+test("the wide sheet lays out NAME, two expiries and a day pair, and names the tab with an s", () => {
+  const sheet = wideMonthSheet({ items: ITEMS, movements: [], month: "2026-09" });
+  assert.equal(sheet.sheet, "SEPTEMBER 2026s");
+  assert.equal(sheet.title, "MEDICINE AND SUPPLY INVENTORY (2026)");
+  assert.equal(sheet.headers.length, 4 + 30 * 2 + 2);
+  assert.deepEqual(sheet.headers.slice(0, 6), [
+    null,
+    "NAME",
+    "EXPIRATION DATE",
+    "EXPIRATION DATE",
+    "STARTING BALANCE SEPTEMBER 1, 2026",
+    "DISPENSED: 09/01",
+  ]);
+  assert.deepEqual(sheet.headers.slice(-2), ["BALANCE", "MONTH-END BALANCE (SEPTEMBER)"]);
+});
+
+test("the wide sheet carries balances across days and lists one row per item", () => {
+  const movements: LedgerMovement[] = [
+    { date: "2026-08-31", itemId: "MED-001", qty: 30, expiry: "2027-08-31" },
+    { date: "2026-09-02", itemId: "MED-001", qty: 20, expiry: "2026-11-30" },
+    { date: "2026-09-05", itemId: "MED-001", qty: -8, expiry: "2026-11-30" },
+    { date: "2026-09-09", itemId: "SUP-002", qty: 5, expiry: "2026-12-31" },
+    { date: "2026-09-09", itemId: "SUP-002", qty: -2, expiry: null },
+  ];
+  const sheet = wideMonthSheet({ items: ITEMS, movements, month: "2026-09" });
+  assert.deepEqual(sheet.rows.map((r) => [r.index, r.name]), [
+    [1, "PARACETAMOL"],
+    [2, "GLOVES (LATEX)"],
+  ]);
+
+  const med = sheet.rows[0];
+  assert.equal(med.days.length, 30);
+  assert.deepEqual(med.days[0], { beginning: 30, dispensed: 0 }, "August's 30 is carried in");
+  assert.deepEqual(med.days[1], { beginning: 30, dispensed: 0 }, "the receipt does not hide the opening");
+  assert.deepEqual(med.days[2], { beginning: 50, dispensed: 0 }, "the receipt lifts the next day's start");
+  assert.deepEqual(med.days[4], { beginning: 50, dispensed: 8 }, "the dispense is the day's own column");
+  assert.equal(med.balance, 42);
+  assert.deepEqual(med.expiries, ["2026-11-30", "2027-08-31"], "the two soonest batches still in stock");
+
+  const gloves = sheet.rows[1];
+  assert.deepEqual(gloves.expiries, ["2026-12-31"], "the unknown-expiry batch is not named as a date");
+  assert.equal(gloves.balance, 3);
 });
