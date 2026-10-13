@@ -149,7 +149,7 @@ export default function MonthEndPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Month closing"
+        title="Month report"
         description="Count the shelf, save the counts, then close the month so its numbers cannot change. You can reopen it later if a mistake turns up."
       />
 
@@ -222,6 +222,13 @@ export default function MonthEndPage() {
                   <thead>
                     <tr>
                       <th scope="col" className={thClass}>Item</th>
+                      <th scope="col" className={thClass}>Unit</th>
+                      <th scope="col" className={thClass}>Category</th>
+                      <th scope="col" className={thRightClass}>Beginning</th>
+                      <th scope="col" className={thRightClass}>Received</th>
+                      <th scope="col" className={thRightClass}>Dispensed</th>
+                      <th scope="col" className={thRightClass}>Disposed</th>
+                      <th scope="col" className={thRightClass}>Adjusted</th>
                       <th scope="col" className={thRightClass}>System says</th>
                       <th scope="col" className={thRightClass}>You counted</th>
                       <th scope="col" className={thRightClass}>Difference</th>
@@ -344,6 +351,13 @@ function CountRowView({
         {row.variant ? <span className="text-muted"> · {row.variant}</span> : null}
         <span className="ml-2 font-mono text-xs text-muted">{row.itemId}</span>
       </td>
+      <td className="px-3 py-1.5 text-left text-sm text-muted">{row.unit || "—"}</td>
+      <td className="px-3 py-1.5 text-left text-sm">{row.category}</td>
+      <td className="px-3 py-1.5 text-right font-mono text-muted">{row.beginning ?? 0}</td>
+      <td className="px-3 py-1.5 text-right font-mono text-muted">{row.received ?? 0}</td>
+      <td className="px-3 py-1.5 text-right font-mono text-muted">{row.dispensed ?? 0}</td>
+      <td className="px-3 py-1.5 text-right font-mono text-muted">{row.disposed ?? 0}</td>
+      <td className="px-3 py-1.5 text-right font-mono text-muted">{row.adjusted ?? 0}</td>
       <td className="px-3 py-1.5 text-right font-mono text-muted">{row.system}</td>
       <td className="px-3 py-1.5 text-right">
         <Input

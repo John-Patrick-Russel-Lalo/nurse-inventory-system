@@ -9,11 +9,9 @@ import { OfflineBar } from "./OfflineBar";
 import { SignOutButton } from "./SignOutButton";
 import { ThemeToggle } from "./ThemeToggle";
 import {
-  IconAudit,
   IconDashboard,
   IconExpiry,
   IconHelp,
-  IconImport,
   IconItems,
   IconMonthEnd,
   IconReceive,
@@ -52,17 +50,11 @@ const NAV: NavGroup[] = [
     items: [
       { label: "Stock on hand", href: "/stock", Icon: IconStock, blurb: "How much is left" },
       { label: "Expiry dates", href: "/expiry", Icon: IconExpiry, blurb: "What goes out of date soon" },
-      { label: "Month closing", href: "/month-end", Icon: IconMonthEnd, blurb: "Count the shelf and close the month" },
+      { label: "Month report", href: "/month-end", Icon: IconMonthEnd, blurb: "Count the shelf and close the month" },
       { label: "Item list", href: "/items", Icon: IconItems, blurb: "Everything the office keeps" },
     ],
   },
-  {
-    label: "Manage",
-    items: [
-      { label: "Old spreadsheet", href: "/admin/import", Icon: IconImport, blurb: "What came in from the old file", adminOnly: true },
-      { label: "Activity history", href: "/admin/audit", Icon: IconAudit, blurb: "Who did what, and when", adminOnly: true },
-    ],
-  },
+
   {
     label: "Help",
     items: [
@@ -102,13 +94,13 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
   return (
     <div
       className={cn(
-        "mx-auto grid min-h-dvh grid-cols-1 gap-x-8 px-4",
-        focus ? "max-w-5xl" : "max-w-7xl md:grid-cols-[15rem_minmax(0,1fr)]",
+        "grid min-h-dvh grid-cols-1 gap-x-8 px-4",
+        focus ? "mx-auto max-w-6xl" : "md:grid-cols-[15rem_minmax(0,1fr)]",
       )}
     >
       {focus ? null : (
-      <aside className="flex flex-col gap-6 py-6 md:sticky md:top-0 md:h-dvh md:py-8">
-        <Link href="/" className="flex items-center gap-2.5 rounded-xl">
+      <aside className="flex flex-col gap-6 border-r border-rule px-3 py-6 md:sticky md:top-0 md:h-dvh md:py-6">
+        <Link href="/" className="flex items-center gap-2.5 rounded-xl px-1">
           <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft shadow-raised">
             <span className="brand-mark size-6" aria-hidden />
           </span>
@@ -125,10 +117,10 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
           ))}
         </nav>
 
-        <nav aria-label="Sections" className="hidden flex-col gap-5 md:flex">
+        <nav aria-label="Sections" className="hidden flex-col gap-4 md:flex">
           {groups.map((group) => (
-            <div key={group.label} className="flex flex-col gap-1">
-              <p className="px-2.5 text-xs font-semibold tracking-wider text-muted uppercase">{group.label}</p>
+            <div key={group.label} className="flex flex-col gap-0.5">
+              <p className="px-2 text-xs font-semibold tracking-wider text-muted uppercase">{group.label}</p>
               {group.items.map((n) => (
                 <NavLink key={n.href} item={n} active={isActive(pathname, n.href)} />
               ))}
@@ -157,7 +149,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
       </aside>
       )}
 
-      <main className="min-w-0 py-6 md:py-8">
+        <main className="min-w-0 px-2 py-6 md:py-6">
         <OfflineBar />
         {children}
       </main>

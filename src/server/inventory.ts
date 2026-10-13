@@ -33,7 +33,7 @@ import {
   type Ctx,
   NURSE_BACKDATE_DAYS,
 } from "./context";
-import { fromDbDate, lastDayOfMonth, lastMonths, monthOf, monthsBetween, today, toDbDate } from "@/lib/dates";
+import { fromDbDate, lastDayOfMonth, lastMonths, monthOf, monthsBetween, previousMonth, today, toDbDate } from "@/lib/dates";
 import { ApiError } from "./http";
 
 // ---------- retry ----------
@@ -734,6 +734,64 @@ export async function balancesAtMonthEnd(month: string): Promise<Map<string, num
     FROM "batches" b
     LEFT JOIN "transactions" t
       ON t."batchId" = b."id" AND t."voidedAt" IS NULL AND t."date" <= ${toDbDate(cutoff)}
+    GROUP BY b."itemId"
+  `;
+  return new Map(rows.map((r) => [r.itemId, Number(r.balance)]));
+}
+
+export interface MonthItemStats {
+  itemId: string;
+  beginning: number;
+  received: number;
+  dispensed: number;
+  disposed: number;
+  adjusted: number;
+  ending: number;
+}
+
+/** Item-level movements for a specific month (from 1st to last day). */
+export async function monthItemStats(month: string): Promise<Map<string, MonthItemStats>> {
+  const start = `${month}-01`;
+  const lastDay = lastDayOfMonth(month);
+  const rows = await db.transaction.findMany({
+    where: { date: { gte: toDbDate(start), lte: toDbDate(lastDay) }, voidedAt: null },
+    select: { itemId: true, type: true, qty: true },
+  });
+
+  const map = new Map<string, MonthItemStats>();
+  for (const r of rows) {
+    const s = map.get(r.itemId) ?? { itemId: r.itemId, beginning: 0, received: 0, dispensed: 0, disposed: 0, adjusted: 0, ending: 0 };
+    if (r.qty > 0) s.received += r.qty;
+    else if (r.qty < 0) {
+      if (r.type === "DISPOSE") s.disposed += -r.qty;
+      else if (r.type === "DISPENSE") s.dispensed += -r.qty;
+      else if (r.type === "ADJUST") s.adjusted += -r.qty;
+      else s.dispensed += -r.qty;
+    } else {
+      if (r.type === "ADJUST") s.adjusted += 0;
+    }
+    map.set(r.itemId, s);
+  }
+
+  // Calculate beginning/ending by comparing against full month balances
+  const [beg, end] = await Promise.all([balancesAtMonthStart(month), balancesAtMonthEnd(month)]);
+  for (const [itemId, stats] of map) {
+    stats.ending = end.get(itemId) ?? 0;
+    stats.beginning = beg.get(itemId) ?? (stats.ending - stats.received + stats.dispensed + stats.disposed + stats.adjusted);
+    map.set(itemId, stats);
+  }
+  return map;
+}
+
+export async function balancesAtMonthStart(month: string): Promise<Map<string, number>> {
+  const lastMonth = previousMonth(month);
+  const lastDayPrev = lastDayOfMonth(lastMonth);
+  const rows = await db.$queryRaw<{ itemId: string; balance: bigint }[]>`
+    SELECT b."itemId",
+           COALESCE(SUM(t."qty"), 0)::bigint AS balance
+    FROM "batches" b
+    LEFT JOIN "transactions" t
+      ON t."batchId" = b."id" AND t."voidedAt" IS NULL AND t."date" <= ${toDbDate(lastDayPrev)}
     GROUP BY b."itemId"
   `;
   return new Map(rows.map((r) => [r.itemId, Number(r.balance)]));

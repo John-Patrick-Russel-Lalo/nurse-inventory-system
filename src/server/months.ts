@@ -3,7 +3,7 @@ import { lastDayOfMonth, monthOf, previousMonth } from "@/lib/dates";
 import type { ClosedMonth, CountRow, MonthEndResponse, MonthsResponse } from "@/lib/api-types";
 import { audit, serverMonth, type Ctx } from "./context";
 import { ApiError } from "./http";
-import { balancesAtMonthEnd } from "./inventory";
+import { balancesAtMonthEnd, monthItemStats } from "./inventory";
 
 /** The month an admin would normally close: last month. */
 export function suggestedMonth(today: string): string {
@@ -31,22 +31,29 @@ export async function monthEndSheet(ctx: Ctx, rawMonth: string): Promise<MonthEn
   const month = serverMonth(rawMonth);
   const closed = await db.closedMonth.findUnique({ where: { month } });
 
-  const [items, saved, system] = await Promise.all([
+  const [items, saved, system, stats] = await Promise.all([
     db.item.findMany({ where: { active: true }, orderBy: [{ name: "asc" }, { id: "asc" }] }),
     db.monthClosing.findMany({ where: { month } }),
     balancesAtMonthEnd(month),
+    monthItemStats(month),
   ]);
 
   const savedBy = new Map(saved.map((s) => [s.itemId, s]));
   const counts: CountRow[] = items.map((item) => {
     const systemQty = system.get(item.id) ?? 0;
     const row = savedBy.get(item.id);
+    const st = stats.get(item.id) ?? { beginning: 0, received: 0, dispensed: 0, disposed: 0, adjusted: 0, ending: 0 };
     return {
       itemId: item.id,
       itemName: item.name,
       variant: item.variant,
       unit: item.unit,
       category: item.category,
+      beginning: st.beginning,
+      received: st.received,
+      dispensed: st.dispensed,
+      disposed: st.disposed,
+      adjusted: st.adjusted,
       system: systemQty,
       counted: row ? row.counted : null,
       difference: row ? row.counted - systemQty : null,

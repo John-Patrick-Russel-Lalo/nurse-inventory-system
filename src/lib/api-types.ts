@@ -156,6 +156,11 @@ export interface CountRow {
   variant: string | null;
   unit: string | null;
   category: Category;
+  beginning: number;
+  received: number;
+  dispensed: number;
+  disposed: number;
+  adjusted: number;
   system: number;
   counted: number | null;
   difference: number | null;

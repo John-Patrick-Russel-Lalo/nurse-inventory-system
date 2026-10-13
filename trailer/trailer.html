@@ -235,6 +235,13 @@
   const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
   const eOut = (t) => 1 - Math.pow(1 - clamp(t), 3);
   const eInOut = (t) => { t = clamp(t); return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+  const sceneIdx = (id) => scenes.findIndex((s) => s.id === id);
+  const slideIn = (i, lt) => {
+    const t = clamp(lt / IN);
+    const dirs = ["translateY(-30px)", "translateX(-40px)", "translateX(40px)", "translateY(30px)", "translateX(-40px)", "translateY(-30px)"];
+    const from = dirs[i] || "translateY(-30px)";
+    return `translate(${parseFloat(from) * (1 - eOut(t))}px, ${parseFloat(from.replace(/[^0-9]/g, "")) * (1 - eOut(t))}px)`;
+  };
 
   function scene2(lt) {
     const tabs = el.s2.querySelectorAll(".tab");
@@ -270,9 +277,10 @@
       node.style.display = "flex";
       const inP = clamp(lt / IN);
       const outP = s.last ? 0 : clamp((lt - (IN + s.hold)) / OUT);
-      node.style.opacity = (eOut(inP) * (1 - eInOut(outP))).toFixed(3);
-      const y = (1 - eOut(inP)) * 30 - eInOut(outP) * 18;
-      node.style.transform = "translateY(" + y.toFixed(1) + "px) scale(" + (0.982 + 0.018 * eOut(inP)).toFixed(4) + ")";
+      const baseOpacity = (eOut(inP) * (1 - eInOut(outP))).toFixed(3);
+      const slide = slideIn(scenes.indexOf(s), lt);
+      node.style.opacity = baseOpacity;
+      node.style.transform = slide + " scale(" + (0.982 + 0.018 * eOut(inP)).toFixed(4) + ")";
 
       if (s.id === "s2") scene2(lt);
       if (s.id === "s3") scene3(lt);
