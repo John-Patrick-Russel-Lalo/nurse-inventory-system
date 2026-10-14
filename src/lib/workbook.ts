@@ -1,19 +1,21 @@
 // Reads the old NURSE.xlsx workbook. Two kinds of tab are used:
 //
-//   "SEPTEMBER 2026"   the converted long format, one row per item per day:
-//                      DATE | ITEM ID | BEGINNING BALANCE | RECEIVED | DISPENSED |
-//                      ENDING BALANCE | EXPIRATION DATE
-//   "SEPTEMBER 2026s"  the wide original, one row per item and one column per day. Only two
-//                      things are read from it: the two EXPIRATION DATE columns, which are the
-//                      only place the workbook records an item's *second* batch, and the
-//                      "Additional (fr. HSO Alangilan)" header, which names the source of a
-//                      delivery.
+//   "SEPTEMBER 2026"   (optional/legacy) the converted long format
+//   "SEPTEMBER 2026s"  the wide original, one row per item and one column per day. This is now
+//                      the primary source: the importer reconstructs daily rows from the wide
+//                      STARTING BALANCE/DISPENSED pairs.
+//
+// The wide tab provides per-day starting balances and dispenses; receipts are inferred from
+// jumps between days (start_{d+1} vs end_d). The two EXPIRATION DATE columns (C/D) give batch
+// hints for items that carry a second expiry, and the "Additional (fr. HSO Alangilan)" header
+// names the delivery source for that month.
 //
 // Nothing here touches the database, so the whole reader can be tested on a fixture.
 
 import ExcelJS from "exceljs";
 import { LEDGER_HEADERS } from "./export-ledger.ts";
 import { endOfMonth } from "./stock.ts";
+import { addDays } from "./dates.ts";
 
 const MONTH_WORDS: Record<string, number> = {
   JAN: 1, JANUARY: 1, FEB: 2, FEBRUARY: 2, MAR: 3, MARCH: 3, APR: 4, APRIL: 4, MAY: 5,
@@ -88,6 +90,13 @@ function raw(cell: ExcelJS.Cell): unknown {
 function text(cell: ExcelJS.Cell): string {
   const v = raw(cell);
   if (v === null || v === undefined) return "";
+  if (typeof v === "number") return String(v).replace(/\u00a0/g, " ").trim();
+  if (typeof v === "object" && v !== null) {
+    const obj = v as any;
+    if (obj.result !== undefined && obj.result !== null) {
+      return String(obj.result).replace(/\u00a0/g, " ").trim();
+    }
+  }
   return String(v).replace(/\u00a0/g, " ").trim();
 }
 
@@ -273,13 +282,9 @@ export async function readWorkbook(path: string): Promise<ParsedWorkbook> {
   await wb.xlsx.readFile(path);
 
   const items = readItems(wb);
-  const months = wb.worksheets
-    .map((ws) => ws.name)
-    .filter((n) => LONG_TAB.test(n))
-    .sort(compareMonths)
-    .map((name) => readLongTab(wb.getWorksheet(name)!));
-
   const wideNames = wb.worksheets.map((ws) => ws.name).filter((n) => WIDE_TAB.test(n)).sort(compareMonths);
+  const longNames = wb.worksheets.map((ws) => ws.name).filter((n) => LONG_TAB.test(n)).sort(compareMonths);
+
   const sources: ParsedWorkbook["sources"] = [];
   for (const name of wideNames) sources.push(...readSources(wb.getWorksheet(name)!));
 
@@ -288,6 +293,14 @@ export async function readWorkbook(path: string): Promise<ParsedWorkbook> {
   const { batchHints, unmatched } = latestWide
     ? readExpiryColumns(latestWide, lookup)
     : { batchHints: [] as WorkbookBatchHint[], unmatched: [] as ParsedWorkbook["unmatched"] };
+
+  // Prefer wide tabs (original format); fall back to long tabs if no wide tabs exist
+  let months: WorkbookMonth[];
+  if (wideNames.length > 0) {
+    months = wideNames.map((name) => readWideTab(wb.getWorksheet(name)!, lookup));
+  } else {
+    months = longNames.map((name) => readLongTab(wb.getWorksheet(name)!));
+  }
 
   return { items, months, sources, batchHints, unmatched };
 }
@@ -334,6 +347,80 @@ function readLongTab(ws: ExcelJS.Worksheet): WorkbookMonth {
 
   rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.itemId < b.itemId ? -1 : 1));
   return { sheet: ws.name, month: monthOf(ws.name), rows, firstDate: rows[0].date, lastDate: rows[rows.length - 1].date };
+}
+
+function readWideTab(ws: ExcelJS.Worksheet, lookup: ItemLookup): WorkbookMonth {
+  const tabMonth = monthOf(ws.name);
+  const [year, monthIdx] = tabMonth.split("-").map(Number);
+  const monthStart = `${tabMonth}-01`;
+  const monthEndDate = endOfMonth(year, monthIdx);
+  const days: string[] = [];
+  for (let day = monthStart; day <= monthEndDate; day = addDays(day, 1)) {
+    days.push(day);
+  }
+
+  const rows: WorkbookRow[] = [];
+  for (let r = 4; r <= ws.rowCount; r++) {
+    const row = ws.getRow(r);
+    const name = text(row.getCell(2));
+    if (!name) continue;
+    const itemId = lookup.resolve(name);
+    if (!itemId) continue;
+
+    // Column positions: A=1, B=2 (name), C=3, D=4 (expiries), then day pairs start at E=5
+    // Each day takes 2 columns: STARTING BALANCE (col index 4 + 2*k + 1), DISPENSED (col index 4 + 2*k + 2) for k>=0
+    let balance = 0;
+    for (let i = 0; i < days.length; i++) {
+      const day = days[i];
+      const startCol = 5 + i * 2; // E is 5
+      const dispCol = 5 + i * 2 + 1;
+      const start = num(row.getCell(startCol));
+      const disp = num(row.getCell(dispCol));
+      const beginning = start;
+      const dispensed = disp;
+      const received = i === 0 ? 0 : Math.max(0, beginning - balance);
+      const ending = beginning - dispensed + received;
+      // Get expiry hint from C/D columns if available for this row
+      const expiryHint = expiryTextFromRow(row);
+      rows.push({
+        date: day,
+        itemId,
+        beginning,
+        received,
+        dispensed,
+        ending,
+        expiry: expiryHint || "",
+      });
+      balance = ending;
+    }
+  }
+
+  if (rows.length === 0) throw new Error(`"${ws.name}" has no rows.`);
+  rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.itemId < b.itemId ? -1 : 1));
+  const firstDate = rows[0].date;
+  const lastDate = rows[rows.length - 1].date;
+  return { sheet: ws.name, month: tabMonth, rows, firstDate, lastDate };
+}
+
+function num(cell: ExcelJS.Cell): number {
+  const v = raw(cell);
+  if (v === null || v === undefined || v === "") return 0;
+  if (typeof v === "number") {
+    if (!Number.isFinite(v)) return 0;
+    return Math.trunc(v);
+  }
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.trunc(n);
+}
+
+function expiryTextFromRow(row: ExcelJS.Row): string {
+  const c = expiryText(row.getCell(3));
+  const d = expiryText(row.getCell(4));
+  if (c && d) return `${c}; ${d}`;
+  if (c) return c;
+  if (d) return d;
+  return "";
 }
 
 /** The "Additional (fr. HSO Alangilan)" columns name where a month's delivery came from. */
